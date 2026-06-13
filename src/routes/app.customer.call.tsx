@@ -130,6 +130,9 @@ function CallScreen() {
     const customerTurn: TranscriptTurn = {
       role: "customer", text, at: Date.now(),
       intent: c.intent, language: c.language, items: c.items,
+      confidence: c.confidence,
+      languageConfidence: c.languageConfidence,
+      intentConfidence: c.intentConfidence,
     };
     setTurns((t) => [...t, customerTurn]);
 
@@ -165,7 +168,11 @@ function CallScreen() {
     const agentTurn: TranscriptTurn = {
       role: "agent", text: data.reply, at: Date.now(),
       intent: data.commerce?.intent, agent: data.financial?.agent,
-      templateId: data.templateId, decision: data.financial?.decision,
+      templateId: data.templateId, templateLang: data.templateLang,
+      language: data.commerce?.language,
+      languageConfidence: data.commerce?.languageConfidence,
+      intentConfidence: data.commerce?.intentConfidence,
+      decision: data.financial?.decision,
       reasoning: data.financial?.reasoning,
     };
     setTurns((t) => [...t, agentTurn]);
