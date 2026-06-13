@@ -30,10 +30,11 @@ export function Navbar() {
     >
       <div className="container-px mx-auto flex h-16 max-w-7xl items-center justify-between">
         <a href="#top" className="flex items-center gap-2.5">
-          <div className="relative grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald to-emerald/40">
-            <span className="font-display text-sm font-bold text-background">K</span>
-            <span className="absolute inset-0 rounded-lg ring-1 ring-inset ring-white/10" />
-          </div>
+          <img
+            src={logoAsset.url}
+            alt="KhataOS"
+            className="h-8 w-8 rounded-lg object-cover"
+          />
           <span className="font-display text-[15px] font-semibold tracking-tight text-foreground">
             KhataOS
           </span>
