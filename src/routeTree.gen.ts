@@ -33,6 +33,7 @@ import { Route as ApiKhataosHealthRouteImport } from './routes/api/khataos.healt
 import { Route as ApiKhataosCallsRouteImport } from './routes/api/khataos.calls'
 import { Route as ApiPublicTwilioVoiceRouteImport } from './routes/api/public/twilio.voice'
 import { Route as ApiPublicTwilioStatusRouteImport } from './routes/api/public/twilio.status'
+import { Route as ApiPublicTwilioMenuRouteImport } from './routes/api/public/twilio.menu'
 import { Route as ApiPublicTwilioGatherRouteImport } from './routes/api/public/twilio.gather'
 import { Route as ApiKhataosOutboundCancelRouteImport } from './routes/api/khataos.outbound.cancel'
 
@@ -158,6 +159,11 @@ const ApiPublicTwilioStatusRoute = ApiPublicTwilioStatusRouteImport.update({
   path: '/api/public/twilio/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTwilioMenuRoute = ApiPublicTwilioMenuRouteImport.update({
+  id: '/api/public/twilio/menu',
+  path: '/api/public/twilio/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTwilioGatherRoute = ApiPublicTwilioGatherRouteImport.update({
   id: '/api/public/twilio/gather',
   path: '/api/public/twilio/gather',
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
+  '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
   '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
   '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
 }
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/app/shopkeeper': typeof AppShopkeeperIndexRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
+  '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
   '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
   '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
 }
@@ -251,6 +259,7 @@ export interface FileRoutesById {
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
+  '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
   '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
   '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
 }
@@ -281,6 +290,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/'
     | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
+    | '/api/public/twilio/menu'
     | '/api/public/twilio/status'
     | '/api/public/twilio/voice'
   fileRoutesByTo: FileRoutesByTo
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper'
     | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
+    | '/api/public/twilio/menu'
     | '/api/public/twilio/status'
     | '/api/public/twilio/voice'
   id:
@@ -336,6 +347,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/'
     | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
+    | '/api/public/twilio/menu'
     | '/api/public/twilio/status'
     | '/api/public/twilio/voice'
   fileRoutesById: FileRoutesById
@@ -345,6 +357,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   ApiKhataosRoute: typeof ApiKhataosRouteWithChildren
   ApiPublicTwilioGatherRoute: typeof ApiPublicTwilioGatherRoute
+  ApiPublicTwilioMenuRoute: typeof ApiPublicTwilioMenuRoute
   ApiPublicTwilioStatusRoute: typeof ApiPublicTwilioStatusRoute
   ApiPublicTwilioVoiceRoute: typeof ApiPublicTwilioVoiceRoute
 }
@@ -519,6 +532,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTwilioStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/twilio/menu': {
+      id: '/api/public/twilio/menu'
+      path: '/api/public/twilio/menu'
+      fullPath: '/api/public/twilio/menu'
+      preLoaderRoute: typeof ApiPublicTwilioMenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/twilio/gather': {
       id: '/api/public/twilio/gather'
       path: '/api/public/twilio/gather'
@@ -608,6 +628,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   ApiKhataosRoute: ApiKhataosRouteWithChildren,
   ApiPublicTwilioGatherRoute: ApiPublicTwilioGatherRoute,
+  ApiPublicTwilioMenuRoute: ApiPublicTwilioMenuRoute,
   ApiPublicTwilioStatusRoute: ApiPublicTwilioStatusRoute,
   ApiPublicTwilioVoiceRoute: ApiPublicTwilioVoiceRoute,
 }
