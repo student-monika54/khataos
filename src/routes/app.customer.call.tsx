@@ -81,10 +81,13 @@ function CallScreen() {
 
   async function onUserSpeech(text: string) {
     setStage("commerce");
-    const customerTurn: TranscriptTurn = { role: "customer", text, at: Date.now() };
-    setTurns((t) => [...t, customerTurn]);
     const c = await runCommerceBrain(text);
     setCommerce(c);
+    const customerTurn: TranscriptTurn = {
+      role: "customer", text, at: Date.now(),
+      intent: c.intent, language: c.language, items: c.items,
+    };
+    setTurns((t) => [...t, customerTurn]);
     setStage("financial");
 
     const res = await fetch("/api/khataos/calls", {
@@ -107,7 +110,7 @@ function CallScreen() {
       templateId: data.templateId, decision: data.financial?.decision,
       reasoning: data.financial?.reasoning,
     };
-    setTurns((t) => [...t, { ...customerTurn, intent: c.intent, language: c.language, items: c.items }, agentTurn].slice(turns.length));
+    setTurns((t) => [...t, agentTurn]);
     setStage("done");
     const lang = c.language === "Hindi" || c.language === "Hinglish" ? "hi-IN" : "en-IN";
     speak(data.reply, lang);
