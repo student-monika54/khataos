@@ -37,7 +37,19 @@ function ShopHome() {
 
   return (
     <AppScreen>
-      <AppHeader title={shop.name} subtitle={`${shop.owner} · Owner`} />
+      <AppHeader
+        title={shop.name}
+        subtitle={`${shop.owner} · Owner`}
+        right={
+          <Link
+            to="/app/shopkeeper/settings"
+            className="grid h-9 w-9 place-items-center rounded-full border border-border bg-surface text-ink-muted"
+            aria-label="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
+        }
+      />
       <div className="px-4 pt-4">
         <div className="rounded-3xl border border-border bg-gradient-to-br from-elevated to-surface p-5">
           <div className="text-[11px] uppercase tracking-[0.14em] text-ink-subtle">Revenue · 30 days</div>
