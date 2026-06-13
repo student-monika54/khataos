@@ -17,10 +17,9 @@ export type ConversationContext = {
   dueDate?: string;
   daysOverdue?: number;
   // When provided, the orchestrator skips language auto-detection and
-  // uses these instead. Set by the Twilio IVR after the caller picks
-  // a language from the DTMF menu (locked for the rest of the call).
+  // uses these instead. Sarvam/Twilio locks this after language detection.
   forcedLanguage?: string;
-  forcedTemplateLang?: "en" | "hi" | "hinglish" | "kn";
+  forcedTemplateLang?: "en" | "hi" | "hinglish" | "kn" | "ta" | "te";
 };
 
 export async function processTurn(text: string, ctx: ConversationContext) {

@@ -158,10 +158,10 @@ const INTENT_PATTERNS: Partial<Record<Intent, RegExp[]>> = {
 
 // ============ ITEMS / AMOUNT ============
 const ITEM_DICT: Record<string, string> = {
-  atta: "Atta", aata: "Atta", flour: "Atta",
+  atta: "Atta", aata: "Atta", flour: "Atta", wheat: "Atta",
   oil: "Oil", tel: "Oil",
   rice: "Rice", chawal: "Rice",
-  dal: "Dal", daal: "Dal",
+  dal: "Dal", daal: "Dal", lentils: "Dal", pulses: "Dal",
   sugar: "Sugar", chini: "Sugar", cheeni: "Sugar",
   salt: "Salt", namak: "Salt",
   milk: "Milk", doodh: "Milk",
@@ -209,17 +209,20 @@ const VOLUME_ITEMS = /oil|tel|milk|doodh/i;
 function extractFromSegment(seg: string, out: { name: string; quantity: string }[], seen: Set<string>) {
   const lower = seg.toLowerCase();
   const numAlt = Object.keys(NUM_WORDS).join("|");
+  const unitAlt = "kg|kilo|kilos|kilogram|kilograms|litre|litres|liter|liters|l|g|gram|grams|pack|packs|packet|packets";
   for (const [k, v] of Object.entries(ITEM_DICT)) {
     const re = new RegExp(
-      `(\\d+(?:\\.\\d+)?\\s?(?:kg|kilo|litre|liter|l|g|gram|pack|packet)?|${numAlt})?\\s*\\b${k}\\b`,
+      `(\\d+(?:\\.\\d+)?\\s?(?:${unitAlt})?(?:\\s+of)?|${numAlt}(?:\\s+(?:${unitAlt}))?(?:\\s+of)?)?\\s*\\b${k}\\b`,
       "i",
     );
     const m = lower.match(re);
     if (!m) continue;
     if (seen.has(v)) continue;
     let qty = (m[1] ?? "").trim();
+    qty = qty.replace(/\s+of$/i, "").trim();
     if (!qty) qty = "1";
-    if (NUM_WORDS[qty.toLowerCase()]) qty = String(NUM_WORDS[qty.toLowerCase()]);
+    const wordQty = qty.match(new RegExp(`^(${numAlt})(?:\\s|$)`, "i"));
+    if (wordQty) qty = qty.replace(wordQty[1], String(NUM_WORDS[wordQty[1].toLowerCase()]));
     // Append a sensible unit when only a bare number is given.
     if (/^\d+$/.test(qty)) {
       if (WEIGHT_ITEMS.test(k)) qty += "kg";
