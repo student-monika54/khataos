@@ -8,7 +8,8 @@ export const Route = createFileRoute("/api/public/twilio/tts/$id")({
       GET: async ({ params }) => {
         const entry = getTts(params.id);
         if (!entry) return new Response("Not found", { status: 404 });
-        return new Response(entry.audio, {
+        const body = new Uint8Array(entry.audio); // ensure ArrayBuffer-backed
+        return new Response(body as unknown as BodyInit, {
           status: 200,
           headers: {
             "Content-Type": entry.contentType,
