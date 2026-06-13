@@ -12,6 +12,8 @@ export const Route = createFileRoute("/api/khataos/health")({
             accountSidMasked: process.env.TWILIO_ACCOUNT_SID
               ? process.env.TWILIO_ACCOUNT_SID.slice(0, 6) + "…" + process.env.TWILIO_ACCOUNT_SID.slice(-4)
               : null,
+            mediaStreamWss: process.env.TWILIO_MEDIA_STREAM_WSS ?? null,
+            mediaStreamReady: !!process.env.TWILIO_MEDIA_STREAM_WSS,
           },
           ai: {
             configured: !!process.env.LOVABLE_API_KEY,

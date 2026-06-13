@@ -28,11 +28,13 @@ import { Route as AppCustomerTrustRouteImport } from './routes/app.customer.trus
 import { Route as AppCustomerRepaymentsRouteImport } from './routes/app.customer.repayments'
 import { Route as AppCustomerCreditRouteImport } from './routes/app.customer.credit'
 import { Route as AppCustomerCallRouteImport } from './routes/app.customer.call'
+import { Route as ApiKhataosOutboundRouteImport } from './routes/api/khataos.outbound'
 import { Route as ApiKhataosHealthRouteImport } from './routes/api/khataos.health'
 import { Route as ApiKhataosCallsRouteImport } from './routes/api/khataos.calls'
 import { Route as ApiPublicTwilioVoiceRouteImport } from './routes/api/public/twilio.voice'
 import { Route as ApiPublicTwilioStatusRouteImport } from './routes/api/public/twilio.status'
 import { Route as ApiPublicTwilioGatherRouteImport } from './routes/api/public/twilio.gather'
+import { Route as ApiKhataosOutboundCancelRouteImport } from './routes/api/khataos.outbound.cancel'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -131,6 +133,11 @@ const AppCustomerCallRoute = AppCustomerCallRouteImport.update({
   path: '/customer/call',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiKhataosOutboundRoute = ApiKhataosOutboundRouteImport.update({
+  id: '/outbound',
+  path: '/outbound',
+  getParentRoute: () => ApiKhataosRoute,
+} as any)
 const ApiKhataosHealthRoute = ApiKhataosHealthRouteImport.update({
   id: '/health',
   path: '/health',
@@ -156,6 +163,12 @@ const ApiPublicTwilioGatherRoute = ApiPublicTwilioGatherRouteImport.update({
   path: '/api/public/twilio/gather',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiKhataosOutboundCancelRoute =
+  ApiKhataosOutboundCancelRouteImport.update({
+    id: '/cancel',
+    path: '/cancel',
+    getParentRoute: () => ApiKhataosOutboundRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -164,6 +177,7 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
+  '/api/khataos/outbound': typeof ApiKhataosOutboundRouteWithChildren
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
@@ -179,6 +193,7 @@ export interface FileRoutesByFullPath {
   '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer/': typeof AppCustomerIndexRoute
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
+  '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
   '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
@@ -189,6 +204,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
+  '/api/khataos/outbound': typeof ApiKhataosOutboundRouteWithChildren
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
@@ -204,6 +220,7 @@ export interface FileRoutesByTo {
   '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer': typeof AppCustomerIndexRoute
   '/app/shopkeeper': typeof AppShopkeeperIndexRoute
+  '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
   '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
@@ -216,6 +233,7 @@ export interface FileRoutesById {
   '/app/': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
+  '/api/khataos/outbound': typeof ApiKhataosOutboundRouteWithChildren
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
@@ -231,6 +249,7 @@ export interface FileRoutesById {
   '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer/': typeof AppCustomerIndexRoute
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
+  '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
   '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
@@ -244,6 +263,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/api/khataos/calls'
     | '/api/khataos/health'
+    | '/api/khataos/outbound'
     | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/repayments'
@@ -259,6 +279,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/settings'
     | '/app/customer/'
     | '/app/shopkeeper/'
+    | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/status'
     | '/api/public/twilio/voice'
@@ -269,6 +290,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/api/khataos/calls'
     | '/api/khataos/health'
+    | '/api/khataos/outbound'
     | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/repayments'
@@ -284,6 +306,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/settings'
     | '/app/customer'
     | '/app/shopkeeper'
+    | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/status'
     | '/api/public/twilio/voice'
@@ -295,6 +318,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/api/khataos/calls'
     | '/api/khataos/health'
+    | '/api/khataos/outbound'
     | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/repayments'
@@ -310,6 +334,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/settings'
     | '/app/customer/'
     | '/app/shopkeeper/'
+    | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/status'
     | '/api/public/twilio/voice'
@@ -459,6 +484,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomerCallRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/khataos/outbound': {
+      id: '/api/khataos/outbound'
+      path: '/outbound'
+      fullPath: '/api/khataos/outbound'
+      preLoaderRoute: typeof ApiKhataosOutboundRouteImport
+      parentRoute: typeof ApiKhataosRoute
+    }
     '/api/khataos/health': {
       id: '/api/khataos/health'
       path: '/health'
@@ -493,6 +525,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/twilio/gather'
       preLoaderRoute: typeof ApiPublicTwilioGatherRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/khataos/outbound/cancel': {
+      id: '/api/khataos/outbound/cancel'
+      path: '/cancel'
+      fullPath: '/api/khataos/outbound/cancel'
+      preLoaderRoute: typeof ApiKhataosOutboundCancelRouteImport
+      parentRoute: typeof ApiKhataosOutboundRoute
     }
   }
 }
@@ -537,14 +576,27 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ApiKhataosOutboundRouteChildren {
+  ApiKhataosOutboundCancelRoute: typeof ApiKhataosOutboundCancelRoute
+}
+
+const ApiKhataosOutboundRouteChildren: ApiKhataosOutboundRouteChildren = {
+  ApiKhataosOutboundCancelRoute: ApiKhataosOutboundCancelRoute,
+}
+
+const ApiKhataosOutboundRouteWithChildren =
+  ApiKhataosOutboundRoute._addFileChildren(ApiKhataosOutboundRouteChildren)
+
 interface ApiKhataosRouteChildren {
   ApiKhataosCallsRoute: typeof ApiKhataosCallsRoute
   ApiKhataosHealthRoute: typeof ApiKhataosHealthRoute
+  ApiKhataosOutboundRoute: typeof ApiKhataosOutboundRouteWithChildren
 }
 
 const ApiKhataosRouteChildren: ApiKhataosRouteChildren = {
   ApiKhataosCallsRoute: ApiKhataosCallsRoute,
   ApiKhataosHealthRoute: ApiKhataosHealthRoute,
+  ApiKhataosOutboundRoute: ApiKhataosOutboundRouteWithChildren,
 }
 
 const ApiKhataosRouteWithChildren = ApiKhataosRoute._addFileChildren(
