@@ -29,10 +29,16 @@ export function languageToCode(lang?: string): LangCode {
 // Twilio <Say> voice + locale for each locked language.
 // Polly has reliable Hindi (Aditi) and English (Raveena) voices.
 // Kannada uses Google Neural (Twilio supports Google.kn-IN-* voices).
+// NOTE: Google voices require an account-level integration and are NOT
+// available on Twilio trial accounts — using them causes the runtime
+// "An application error has occurred" message. Polly voices work on every
+// account, so we fall back to Polly.Aditi (Hindi) for Kannada and speak
+// transliterated text. Swap back to Google.kn-IN-* once enabled on the
+// Twilio account.
 export function voiceForCode(code: LangCode): { voice: string; locale: string } {
   switch (code) {
     case "hi": return { voice: "Polly.Aditi", locale: "hi-IN" };
-    case "kn": return { voice: "Google.kn-IN-Standard-A", locale: "kn-IN" };
+    case "kn": return { voice: "Polly.Aditi", locale: "hi-IN" };
     default:   return { voice: "Polly.Raveena", locale: "en-IN" };
   }
 }
