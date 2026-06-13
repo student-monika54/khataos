@@ -26,6 +26,7 @@ import { Route as AppShopkeeperCallsRouteImport } from './routes/app.shopkeeper.
 import { Route as AppCustomerVoiceRouteImport } from './routes/app.customer.voice'
 import { Route as AppCustomerTrustRouteImport } from './routes/app.customer.trust'
 import { Route as AppCustomerRepaymentsRouteImport } from './routes/app.customer.repayments'
+import { Route as AppCustomerOrdersRouteImport } from './routes/app.customer.orders'
 import { Route as AppCustomerCreditRouteImport } from './routes/app.customer.credit'
 import { Route as AppCustomerCallRouteImport } from './routes/app.customer.call'
 import { Route as ApiKhataosOutboundRouteImport } from './routes/api/khataos.outbound'
@@ -126,6 +127,11 @@ const AppCustomerRepaymentsRoute = AppCustomerRepaymentsRouteImport.update({
   path: '/customer/repayments',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCustomerOrdersRoute = AppCustomerOrdersRouteImport.update({
+  id: '/customer/orders',
+  path: '/customer/orders',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCustomerCreditRoute = AppCustomerCreditRouteImport.update({
   id: '/customer/credit',
   path: '/customer/credit',
@@ -199,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/api/khataos/outbound': typeof ApiKhataosOutboundRouteWithChildren
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
+  '/app/customer/orders': typeof AppCustomerOrdersRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
   '/app/customer/voice': typeof AppCustomerVoiceRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/api/khataos/outbound': typeof ApiKhataosOutboundRouteWithChildren
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
+  '/app/customer/orders': typeof AppCustomerOrdersRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
   '/app/customer/voice': typeof AppCustomerVoiceRoute
@@ -261,6 +269,7 @@ export interface FileRoutesById {
   '/api/khataos/outbound': typeof ApiKhataosOutboundRouteWithChildren
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
+  '/app/customer/orders': typeof AppCustomerOrdersRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
   '/app/customer/voice': typeof AppCustomerVoiceRoute
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/api/khataos/outbound'
     | '/app/customer/call'
     | '/app/customer/credit'
+    | '/app/customer/orders'
     | '/app/customer/repayments'
     | '/app/customer/trust'
     | '/app/customer/voice'
@@ -324,6 +334,7 @@ export interface FileRouteTypes {
     | '/api/khataos/outbound'
     | '/app/customer/call'
     | '/app/customer/credit'
+    | '/app/customer/orders'
     | '/app/customer/repayments'
     | '/app/customer/trust'
     | '/app/customer/voice'
@@ -355,6 +366,7 @@ export interface FileRouteTypes {
     | '/api/khataos/outbound'
     | '/app/customer/call'
     | '/app/customer/credit'
+    | '/app/customer/orders'
     | '/app/customer/repayments'
     | '/app/customer/trust'
     | '/app/customer/voice'
@@ -509,6 +521,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomerRepaymentsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/customer/orders': {
+      id: '/app/customer/orders'
+      path: '/customer/orders'
+      fullPath: '/app/customer/orders'
+      preLoaderRoute: typeof AppCustomerOrdersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/customer/credit': {
       id: '/app/customer/credit'
       path: '/customer/credit'
@@ -600,6 +619,7 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppCustomerCallRoute: typeof AppCustomerCallRoute
   AppCustomerCreditRoute: typeof AppCustomerCreditRoute
+  AppCustomerOrdersRoute: typeof AppCustomerOrdersRoute
   AppCustomerRepaymentsRoute: typeof AppCustomerRepaymentsRoute
   AppCustomerTrustRoute: typeof AppCustomerTrustRoute
   AppCustomerVoiceRoute: typeof AppCustomerVoiceRoute
@@ -619,6 +639,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppCustomerCallRoute: AppCustomerCallRoute,
   AppCustomerCreditRoute: AppCustomerCreditRoute,
+  AppCustomerOrdersRoute: AppCustomerOrdersRoute,
   AppCustomerRepaymentsRoute: AppCustomerRepaymentsRoute,
   AppCustomerTrustRoute: AppCustomerTrustRoute,
   AppCustomerVoiceRoute: AppCustomerVoiceRoute,
