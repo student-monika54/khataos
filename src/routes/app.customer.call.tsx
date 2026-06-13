@@ -322,7 +322,7 @@ function CallScreen() {
           </div>
 
           {/* Last Order */}
-          <Section title="Last order from voice" right={<Link to="/app/customer/orders" className="text-[11px] text-emerald">View all</Link>}>
+          <Section title="Last order from voice" action={<Link to="/app/customer/orders" className="text-[11px] text-emerald">View all</Link>}>
             {lastOrderTurn ? (
               <div className="rounded-2xl border border-border bg-elevated p-3.5">
                 <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-emerald">
@@ -356,7 +356,7 @@ function CallScreen() {
           </Section>
 
           {/* Recent calls */}
-          <Section title="Recent calls" right={myCalls.length ? <span className="text-[10px] text-ink-subtle">{myCalls.length}</span> : null}>
+          <Section title="Recent calls" action={myCalls.length ? <span className="text-[10px] text-ink-subtle">{myCalls.length}</span> : null}>
             {myCalls.length ? (
               <ul className="space-y-2">
                 {myCalls.map((c) => (
