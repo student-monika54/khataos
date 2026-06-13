@@ -37,6 +37,7 @@ import { Route as ApiPublicTwilioRecordingRouteImport } from './routes/api/publi
 import { Route as ApiPublicTwilioMenuRouteImport } from './routes/api/public/twilio.menu'
 import { Route as ApiPublicTwilioGatherRouteImport } from './routes/api/public/twilio.gather'
 import { Route as ApiKhataosOutboundCancelRouteImport } from './routes/api/khataos.outbound.cancel'
+import { Route as ApiKhataosOrdersLiveRouteImport } from './routes/api/khataos.orders.live'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -182,6 +183,11 @@ const ApiKhataosOutboundCancelRoute =
     path: '/cancel',
     getParentRoute: () => ApiKhataosOutboundRoute,
   } as any)
+const ApiKhataosOrdersLiveRoute = ApiKhataosOrdersLiveRouteImport.update({
+  id: '/orders/live',
+  path: '/orders/live',
+  getParentRoute: () => ApiKhataosRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer/': typeof AppCustomerIndexRoute
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
+  '/api/khataos/orders/live': typeof ApiKhataosOrdersLiveRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer': typeof AppCustomerIndexRoute
   '/app/shopkeeper': typeof AppShopkeeperIndexRoute
+  '/api/khataos/orders/live': typeof ApiKhataosOrdersLiveRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer/': typeof AppCustomerIndexRoute
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
+  '/api/khataos/orders/live': typeof ApiKhataosOrdersLiveRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/settings'
     | '/app/customer/'
     | '/app/shopkeeper/'
+    | '/api/khataos/orders/live'
     | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/menu'
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/settings'
     | '/app/customer'
     | '/app/shopkeeper'
+    | '/api/khataos/orders/live'
     | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/menu'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/settings'
     | '/app/customer/'
     | '/app/shopkeeper/'
+    | '/api/khataos/orders/live'
     | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/menu'
@@ -574,6 +586,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiKhataosOutboundCancelRouteImport
       parentRoute: typeof ApiKhataosOutboundRoute
     }
+    '/api/khataos/orders/live': {
+      id: '/api/khataos/orders/live'
+      path: '/orders/live'
+      fullPath: '/api/khataos/orders/live'
+      preLoaderRoute: typeof ApiKhataosOrdersLiveRouteImport
+      parentRoute: typeof ApiKhataosRoute
+    }
   }
 }
 
@@ -632,12 +651,14 @@ interface ApiKhataosRouteChildren {
   ApiKhataosCallsRoute: typeof ApiKhataosCallsRoute
   ApiKhataosHealthRoute: typeof ApiKhataosHealthRoute
   ApiKhataosOutboundRoute: typeof ApiKhataosOutboundRouteWithChildren
+  ApiKhataosOrdersLiveRoute: typeof ApiKhataosOrdersLiveRoute
 }
 
 const ApiKhataosRouteChildren: ApiKhataosRouteChildren = {
   ApiKhataosCallsRoute: ApiKhataosCallsRoute,
   ApiKhataosHealthRoute: ApiKhataosHealthRoute,
   ApiKhataosOutboundRoute: ApiKhataosOutboundRouteWithChildren,
+  ApiKhataosOrdersLiveRoute: ApiKhataosOrdersLiveRoute,
 }
 
 const ApiKhataosRouteWithChildren = ApiKhataosRoute._addFileChildren(
