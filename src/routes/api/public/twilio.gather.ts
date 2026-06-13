@@ -110,7 +110,18 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
           forcedTemplateLang: tplLang,
         });
 
-        result.turns.forEach((t) => appendTurnServer(cid, t));
+        // Attach Twilio STT debug to the customer turn so the live dashboard can show it.
+        result.turns.forEach((t) => {
+          if (t.role === "customer") {
+            t.sttLocale = stt;
+            t.sttModel = sttModel;
+            t.expectedSttLocale = expectedStt;
+            t.speechConfidence = speechConfidence;
+            t.transcriptLength = speech.length;
+            t.rawTranscript = speech;
+          }
+          appendTurnServer(cid, t);
+        });
 
         // ===== END_CALL → graceful farewell + hangup =====
         if (result.endCall) {
