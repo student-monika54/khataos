@@ -14,6 +14,8 @@ export type CommerceBrainOutput = {
   amount?: number;
   rawText: string;
   confidence: number;
+  languageConfidence: number;
+  intentConfidence: number;
   endCall: boolean;
 };
 
@@ -21,6 +23,19 @@ const HINDI_RANGE = /[\u0900-\u097F]/;
 const KANNADA_RANGE = /[\u0C80-\u0CFF]/;
 const TAMIL_RANGE = /[\u0B80-\u0BFF]/;
 const TELUGU_RANGE = /[\u0C00-\u0C7F]/;
+
+const normalise = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[^\p{L}\p{N}\s₹]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const hasAny = (text: string, patterns: RegExp[]) => patterns.some((re) => re.test(text));
+
+const countMatches = (text: string, patterns: RegExp[]) =>
+  patterns.reduce((sum, re) => sum + (re.test(text) ? 1 : 0), 0);
 
 // Strong Hinglish romanised markers — if any of these appear without
 // Devanagari we treat the utterance as Hinglish, not English.
