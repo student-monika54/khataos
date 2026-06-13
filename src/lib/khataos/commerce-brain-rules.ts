@@ -110,6 +110,7 @@ const INTENT_PATTERNS: Partial<Record<Intent, RegExp[]>> = {
     /\b(mujhe|mereko).{0,35}\b(credit|udhaar|rupaye|rupees?|paisa|paise).{0,35}\b(chahiye|de\s?do|dijiye|aur)\b/i,
     /(उधार|क्रेडिट|लोन|रुपये).*(चाहिए|दीजिए|दे दो|मिलेगा|और)|(मुझे).*(उधार|क्रेडिट)/i,
     /(ಸಾಲ|ಕ್ರೆಡಿಟ್|ಉಧಾರ|ರೂಪಾಯಿ|ಹಣ).*(ಬೇಕು|ಕೊಡಿ|ಸಿಗುತ್ತದೆಯೇ|ಹೆಚ್ಚು)|(ನನಗೆ).*(ಸಾಲ|ಕ್ರೆಡಿಟ್|ಹಣ)/i,
+    /\b(nanage|nanna|nanu).{0,30}\b(credit|saala|sala|loan|hana|rupayi|roopayi).{0,30}\b(beku|beka|kodi|sigutta|more|heccu)\b/i,
   ],
   PAYMENT_CONFIRMATION: [
     PAYMENT_CONFIRM,
@@ -117,6 +118,7 @@ const INTENT_PATTERNS: Partial<Record<Intent, RegExp[]>> = {
     /\b(payment|paisa|paise|amount|dues?)\s*(kar\s*diya|ho\s*gaya|bhej\s*diya|de\s*diya|paid|done)\b/i,
     /(मैंने|मैने).*(भुगतान|पेमेंट|पैसे).*(कर\s*दिया|भेज\s*दिए|दे\s*दिए)|(भुगतान|पेमेंट).*(हो\s*गया|कर\s*दिया)/i,
     /(ಪಾವತಿ|ಹಣ).*(ಮಾಡಿದೆ|ಕಟ್ಟಿದೆ|ಕೊಟ್ಟಿದ್ದೇನೆ|ಕಳುಹಿಸಿದೆ)|(ನಾನು).*(ಪಾವತಿ|ಹಣ).*(ಮಾಡಿದೆ|ಕಟ್ಟಿದೆ)/i,
+    /\b(payment|hana|dues?|amount).{0,30}\b(madide|maadide|kattide|kottide|kaluhiside|done|paid)\b/i,
   ],
   REPAYMENT: [
     /\b(pay\s+now|repay|make\s+a\s+payment|settle\s+now|clear\s+dues?)\b/i,
