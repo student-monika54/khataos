@@ -77,7 +77,7 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
           return twiml(`
             <Gather input="speech dtmf" numDigits="1" speechTimeout="auto" language="${stt}"
                     action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}"
-                    method="POST" speechModel="experimental_conversations">
+                    method="POST" speechModel="${sttModel}">
               <Say voice="${v.voice}" language="${v.locale}">${escapeXml(reprompt)}</Say>
               <Say voice="${v.voice}" language="${v.locale}">${escapeXml(hint)}</Say>
             </Gather>
@@ -134,7 +134,7 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
           <Say voice="${v.voice}" language="${v.locale}">${escapeXml(result.reply)}</Say>
           <Gather input="speech dtmf" numDigits="1" speechTimeout="auto" language="${stt}"
                   action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}"
-                  method="POST" speechModel="experimental_conversations">
+                  method="POST" speechModel="${sttModel}">
             <Say voice="${v.voice}" language="${v.locale}">${escapeXml(hint)}</Say>
           </Gather>
           <Hangup/>

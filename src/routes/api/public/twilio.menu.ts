@@ -93,7 +93,7 @@ export const Route = createFileRoute("/api/public/twilio/menu")({
           <Say voice="${v.voice}" language="${v.locale}">${escapeXml(greeting)}</Say>
           <Gather input="speech dtmf" numDigits="1" speechTimeout="auto" language="${stt}"
                   action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}"
-                  method="POST" speechModel="experimental_conversations">
+                  method="POST" speechModel="${sttModelForCode(code)}">
             <Say voice="${v.voice}" language="${v.locale}">${escapeXml(hint)}</Say>
           </Gather>
           <Redirect method="POST">${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}</Redirect>
