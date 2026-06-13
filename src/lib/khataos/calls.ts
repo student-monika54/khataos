@@ -140,11 +140,15 @@ export const INTENT_TO_AGENT: Record<Intent, AgentName> = {
   KHATA_ORDER: "CreditAgent",
   CREDIT_REQUEST: "CreditAgent",
   REPAYMENT: "CollectionsAgent",
+  PAYMENT_CONFIRMATION: "CollectionsAgent",
+  PAYMENT_PROMISE: "CollectionsAgent",
   SETTLEMENT: "CollectionsAgent",
   COLLECTIONS_FOLLOWUP: "CollectionsAgent",
   TRUST_INQUIRY: "TrustAgent",
   ESCALATE: "WorkingCapitalAgent",
   GREETING: "InsightsAgent",
+  END_CALL: "InsightsAgent",
+  GENERAL_HELP: "InsightsAgent",
   UNKNOWN: "InsightsAgent",
 };
 
