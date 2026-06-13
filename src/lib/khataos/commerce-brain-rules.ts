@@ -6,7 +6,7 @@ import type { Intent } from "./calls";
 
 export type CommerceBrainOutput = {
   intent: Intent;
-  language: "Hindi" | "English" | "Hinglish" | "Kannada";
+  language: "Hindi" | "English" | "Hinglish" | "Kannada" | "Tamil" | "Telugu";
   items: { name: string; quantity: string }[];
   amount?: number;
   rawText: string;
@@ -15,6 +15,8 @@ export type CommerceBrainOutput = {
 
 const HINDI_RANGE = /[\u0900-\u097F]/;
 const KANNADA_RANGE = /[\u0C80-\u0CFF]/;
+const TAMIL_RANGE = /[\u0B80-\u0BFF]/;
+const TELUGU_RANGE = /[\u0C00-\u0C7F]/;
 const HINGLISH_HINTS = /\b(bhaiya|khate|udhaar|chahiye|kitna|paisa|chukana|rupaye|bakaaya|daal|de\s?do)\b/i;
 
 const ITEM_DICT: Record<string, string> = {
@@ -36,6 +38,8 @@ const NUM_WORDS: Record<string, number> = {
 };
 
 function detectLanguage(t: string): CommerceBrainOutput["language"] {
+  if (TAMIL_RANGE.test(t)) return "Tamil";
+  if (TELUGU_RANGE.test(t)) return "Telugu";
   if (KANNADA_RANGE.test(t)) return "Kannada";
   if (HINDI_RANGE.test(t)) return "Hindi";
   if (HINGLISH_HINTS.test(t)) return "Hinglish";
