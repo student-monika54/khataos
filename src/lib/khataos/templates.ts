@@ -1,5 +1,7 @@
 // Template Response Engine — deterministic, low-latency, multilingual replies.
-// The Financial Brain selects a template and the engine fills it with values.
+// Three locked languages: English (en), Hindi (hi), Kannada (kn).
+// Language is selected via IVR DTMF menu (1/2/3) and locked for the call.
+// Hinglish kept only as alias for hi for backward compatibility.
 
 import type { Intent } from "./calls";
 
@@ -30,80 +32,67 @@ const INR = (n?: number) =>
 
 type Bag = Record<TemplateId, (v: TemplateVars) => string>;
 
+// ===== ENGLISH (LOCKED) =====
 const en: Bag = {
-  GREETING: (v) => `Namaste ${v.customerName ?? ""}. This is KhataOS. How can I help today?`,
-  BALANCE_INQUIRY: (v) => `Your outstanding khata is ${INR(v.outstanding)} and you have ${INR(v.available)} of credit available.`,
-  CREDIT_APPROVAL: (v) => `Approved. ${INR(v.amount)} added to your khata. New outstanding is ${INR(v.outstanding)}. Trust score ${v.trustScore}.`,
-  CREDIT_CONDITIONAL: (v) => `I can approve ${INR(v.amount)} only if you settle ${INR(v.outstanding)} this week. Shall I confirm?`,
-  CREDIT_REJECTION: (v) => `Sorry, I can't extend more credit right now. ${v.reason ?? ""} Please clear ${INR(v.outstanding)} first.`,
-  ORDER_CONFIRMATION: (v) => `Order confirmed: ${v.items ?? "your items"}. ${INR(v.amount)} added to khata.`,
-  PAYMENT_REMINDER: (v) => `Reminder: ${INR(v.outstanding)} is due on ${v.dueDate ?? "your due date"}. Want to pay now?`,
-  SETTLEMENT_OFFER: (v) => `Noted. Settlement plan logged for ${v.dueDate ?? "next week"} for ${INR(v.outstanding)}.`,
-  COLLECTIONS_FOLLOWUP: (v) => `${v.customerName ?? "Hello"}, ${INR(v.outstanding)} has been overdue ${v.daysOverdue ?? "a few"} days. Can we settle today?`,
-  REPAYMENT_THANKS: (v) => `Received ${INR(v.amount)}. Outstanding is now ${INR(v.outstanding)}. Trust score is up — thank you.`,
-  PAYMENT_CONFIRMATION: (v) => `Thank you. I've noted your payment of ${INR(v.amount) || "the amount"}. Outstanding is now ${INR(v.outstanding)}.`,
-  PAYMENT_PROMISE: (v) => `Got it. I've recorded your promise to pay ${INR(v.outstanding)} by ${v.dueDate ?? "your committed date"}.`,
-  GENERAL_HELP: () => `I can help with your balance, credit requests, orders, or payments. What would you like?`,
-  END_CALL: (v) => `Thank you ${v.customerName ?? ""}. Have a great day. Goodbye.`,
+  GREETING: () => `Welcome to KhataOS. How can I help you today?`,
+  BALANCE_INQUIRY: (v) => `Your current outstanding balance is ${INR(v.outstanding)}.`,
+  CREDIT_APPROVAL: (v) => `Your credit request for ${INR(v.amount)} has been approved.`,
+  CREDIT_CONDITIONAL: (v) => `I can approve ${INR(v.amount)} if you settle ${INR(v.outstanding)} this week.`,
+  CREDIT_REJECTION: () => `Unfortunately your credit request cannot be approved at this time.`,
+  ORDER_CONFIRMATION: () => `Your order has been added to your khata account.`,
+  PAYMENT_REMINDER: (v) => `You currently have an outstanding balance of ${INR(v.outstanding)}.`,
+  SETTLEMENT_OFFER: () => `Your repayment commitment has been recorded.`,
+  COLLECTIONS_FOLLOWUP: (v) => `You currently have an outstanding balance of ${INR(v.outstanding)}.`,
+  REPAYMENT_THANKS: () => `Your payment has been recorded successfully.`,
+  PAYMENT_CONFIRMATION: () => `Your payment has been recorded successfully.`,
+  PAYMENT_PROMISE: () => `Your repayment commitment has been recorded.`,
+  GENERAL_HELP: () => `I can help with balances, credit requests, repayments, and account information.`,
+  END_CALL: () => `Thank you for calling KhataOS. Have a great day.`,
   ESCALATION: () => `Connecting you to the shopkeeper now.`,
-  FALLBACK: () => `I didn't understand that. Could you tell me whether you want to check your balance, request credit, or make a payment?`,
+  FALLBACK: () => `I can help with balances, credit requests, repayments, and account information. What would you like?`,
 };
 
+// ===== HINDI (LOCKED, Romanised for reliable Polly TTS) =====
 const hi: Bag = {
-  GREETING: (v) => `नमस्ते ${v.customerName ?? ""}। यह KhataOS है। मैं कैसे मदद कर सकता हूँ?`,
-  BALANCE_INQUIRY: (v) => `आपका बकाया ${INR(v.outstanding)} है और ${INR(v.available)} क्रेडिट उपलब्ध है।`,
-  CREDIT_APPROVAL: (v) => `मंज़ूर। ${INR(v.amount)} आपके खाते में जोड़ दिया। कुल बकाया ${INR(v.outstanding)}।`,
-  CREDIT_CONDITIONAL: (v) => `${INR(v.amount)} मंज़ूर कर सकता हूँ अगर आप इस हफ़्ते ${INR(v.outstanding)} चुका दें।`,
-  CREDIT_REJECTION: (v) => `माफ़ कीजिए, अभी और उधार नहीं दे सकता। पहले ${INR(v.outstanding)} चुका दीजिए।`,
-  ORDER_CONFIRMATION: (v) => `ऑर्डर पक्का: ${v.items ?? "सामान"}। ${INR(v.amount)} खाते में जोड़ दिया।`,
-  PAYMENT_REMINDER: (v) => `याद दिलाना: ${INR(v.outstanding)} ${v.dueDate ?? ""} को देना है। अभी भुगतान करेंगे?`,
-  SETTLEMENT_OFFER: (v) => `ठीक है। ${INR(v.outstanding)} का settlement ${v.dueDate ?? "अगले हफ़्ते"} के लिए नोट कर लिया।`,
-  COLLECTIONS_FOLLOWUP: (v) => `${v.customerName ?? ""} जी, ${INR(v.outstanding)} ${v.daysOverdue ?? "कुछ"} दिन से overdue है। आज settle कर सकते हैं?`,
-  REPAYMENT_THANKS: (v) => `${INR(v.amount)} मिल गया। बकाया ${INR(v.outstanding)}। धन्यवाद।`,
-  PAYMENT_CONFIRMATION: (v) => `धन्यवाद। आपका ${INR(v.amount) || "भुगतान"} दर्ज कर लिया। बाकी बकाया ${INR(v.outstanding)}।`,
-  PAYMENT_PROMISE: (v) => `ठीक है। ${INR(v.outstanding)} ${v.dueDate ?? "तय तारीख"} तक देने का वादा नोट कर लिया।`,
-  GENERAL_HELP: () => `मैं बकाया, उधार, ऑर्डर या भुगतान में मदद कर सकता हूँ। क्या चाहिए?`,
-  END_CALL: (v) => `धन्यवाद ${v.customerName ?? ""}। आपका दिन शुभ हो। अलविदा।`,
-  ESCALATION: () => `आपको दुकानदार से जोड़ रहा हूँ।`,
-  FALLBACK: () => `मुझे पूरी तरह समझ नहीं आया। क्या आप balance check करना चाहते हैं, credit लेना चाहते हैं, या payment के बारे में बात कर रहे हैं?`,
+  GREETING: () => `KhataOS mein aapka swagat hai. Main aaj aapki kis prakar sahayata kar sakta hoon?`,
+  BALANCE_INQUIRY: (v) => `Aapka vartamaan baki balance ${INR(v.outstanding)} hai.`,
+  CREDIT_APPROVAL: (v) => `${INR(v.amount)} ke liye aapka credit request approve kar diya gaya hai.`,
+  CREDIT_CONDITIONAL: (v) => `${INR(v.amount)} approve kar sakta hoon agar aap is hafte ${INR(v.outstanding)} chuka denge.`,
+  CREDIT_REJECTION: () => `Maaf kijiye, is samay aapka credit request approve nahi kiya ja sakta.`,
+  ORDER_CONFIRMATION: () => `Aapka order aapke khata mein jod diya gaya hai.`,
+  PAYMENT_REMINDER: (v) => `Aap par vartamaan mein ${INR(v.outstanding)} ka baki balance hai.`,
+  SETTLEMENT_OFFER: () => `Aapki payment commitment record kar li gayi hai.`,
+  COLLECTIONS_FOLLOWUP: (v) => `Aap par vartamaan mein ${INR(v.outstanding)} ka baki balance hai.`,
+  REPAYMENT_THANKS: () => `Aapka payment safalta purvak record kar liya gaya hai.`,
+  PAYMENT_CONFIRMATION: () => `Aapka payment safalta purvak record kar liya gaya hai.`,
+  PAYMENT_PROMISE: () => `Aapki payment commitment record kar li gayi hai.`,
+  GENERAL_HELP: () => `Main balance, credit request, payment aur account sambandhit jankari mein sahayata kar sakta hoon.`,
+  END_CALL: () => `KhataOS ko call karne ke liye dhanyavaad. Aapka din shubh ho.`,
+  ESCALATION: () => `Main aapko dukandar se jod raha hoon.`,
+  FALLBACK: () => `Main balance, credit request, payment aur account sambandhit jankari mein sahayata kar sakta hoon. Aap kya chahte hain?`,
 };
 
-const hinglish: Bag = {
-  GREETING: (v) => `Namaste ${v.customerName ?? ""}. Yeh KhataOS hai. Kaise madad karu?`,
-  BALANCE_INQUIRY: (v) => `Aapka bakaaya ${INR(v.outstanding)} hai aur ${INR(v.available)} credit available hai.`,
-  CREDIT_APPROVAL: (v) => `Approved. ${INR(v.amount)} aapke khate mein add ho gaya. Total bakaaya ${INR(v.outstanding)}.`,
-  CREDIT_CONDITIONAL: (v) => `${INR(v.amount)} approve kar sakta hu agar aap iss hafte ${INR(v.outstanding)} chuka denge. Confirm?`,
-  CREDIT_REJECTION: (v) => `Maaf kijiye, abhi aur udhaar nahi de sakta. Pehle ${INR(v.outstanding)} clear kar dijiye.`,
-  ORDER_CONFIRMATION: (v) => `Order confirm: ${v.items ?? "items"}. ${INR(v.amount)} khate mein add ho gaya.`,
-  PAYMENT_REMINDER: (v) => `Yaad dilana: ${INR(v.outstanding)} ${v.dueDate ?? ""} ko due hai. Abhi pay karenge?`,
-  SETTLEMENT_OFFER: (v) => `Theek hai. ${INR(v.outstanding)} ka settlement ${v.dueDate ?? "agle hafte"} ke liye note kar liya.`,
-  COLLECTIONS_FOLLOWUP: (v) => `${v.customerName ?? ""} ji, ${INR(v.outstanding)} ${v.daysOverdue ?? "kuch"} din se overdue hai. Aaj settle kar sakte hain?`,
-  REPAYMENT_THANKS: (v) => `${INR(v.amount)} mil gaya. Bakaaya ${INR(v.outstanding)}. Trust score badh gaya — dhanyavaad.`,
-  PAYMENT_CONFIRMATION: (v) => `Dhanyavaad. Aapka ${INR(v.amount) || "payment"} note kar liya. Bakaaya ${INR(v.outstanding)}.`,
-  PAYMENT_PROMISE: (v) => `Theek hai. ${INR(v.outstanding)} ${v.dueDate ?? "tay tareekh"} tak dene ka vaada note kar liya.`,
-  GENERAL_HELP: () => `Main balance, udhaar, order ya payment mein madad kar sakta hu. Kya chahiye?`,
-  END_CALL: (v) => `Dhanyavaad ${v.customerName ?? ""}. Aapka din shubh ho. Alvida.`,
-  ESCALATION: () => `Aapko shopkeeper se connect kar raha hu.`,
-  FALLBACK: () => `Thoda clear bataiye. Balance check karna hai, credit chahiye, ya payment related help?`,
-};
+// hinglish alias = hi (kept for backwards compatibility with older code paths)
+const hinglish: Bag = hi;
 
+// ===== KANNADA (LOCKED) =====
 const kn: Bag = {
-  GREETING: (v) => `ನಮಸ್ಕಾರ ${v.customerName ?? ""}. ಇದು KhataOS. ನಾನು ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?`,
-  BALANCE_INQUIRY: (v) => `ನಿಮ್ಮ ಬಾಕಿ ${INR(v.outstanding)}, ಲಭ್ಯ ಸಾಲ ${INR(v.available)}.`,
-  CREDIT_APPROVAL: (v) => `ಒಪ್ಪಿಗೆ. ${INR(v.amount)} ನಿಮ್ಮ ಖಾತೆಗೆ ಸೇರಿಸಲಾಗಿದೆ. ಒಟ್ಟು ಬಾಕಿ ${INR(v.outstanding)}.`,
-  CREDIT_CONDITIONAL: (v) => `${INR(v.amount)} ಒಪ್ಪಬಹುದು, ಆದರೆ ಈ ವಾರ ${INR(v.outstanding)} ಪಾವತಿಸಬೇಕು.`,
-  CREDIT_REJECTION: (v) => `ಕ್ಷಮಿಸಿ, ಈಗ ಹೆಚ್ಚಿನ ಸಾಲ ಸಾಧ್ಯವಿಲ್ಲ. ಮೊದಲು ${INR(v.outstanding)} ಪಾವತಿಸಿ.`,
-  ORDER_CONFIRMATION: (v) => `ಆರ್ಡರ್ ದೃಢಪಡಿಸಲಾಗಿದೆ: ${v.items ?? "ವಸ್ತುಗಳು"}. ${INR(v.amount)} ಖಾತೆಗೆ.`,
-  PAYMENT_REMINDER: (v) => `ನೆನಪು: ${INR(v.outstanding)} ${v.dueDate ?? ""} ರಂದು ಬಾಕಿ. ಈಗ ಪಾವತಿಸುವಿರಾ?`,
-  SETTLEMENT_OFFER: (v) => `ಸರಿ. ${INR(v.outstanding)} ${v.dueDate ?? "ಮುಂದಿನ ವಾರ"} ರೊಳಗೆ settlement ನೋಂದಣಿ.`,
-  COLLECTIONS_FOLLOWUP: (v) => `${v.customerName ?? ""}, ${INR(v.outstanding)} ${v.daysOverdue ?? "ಕೆಲವು"} ದಿನಗಳಿಂದ ಬಾಕಿ. ಇಂದು ಪಾವತಿಸುವಿರಾ?`,
-  REPAYMENT_THANKS: (v) => `${INR(v.amount)} ಸ್ವೀಕರಿಸಲಾಗಿದೆ. ಬಾಕಿ ${INR(v.outstanding)}. ಧನ್ಯವಾದ.`,
-  PAYMENT_CONFIRMATION: (v) => `ಧನ್ಯವಾದ. ${INR(v.amount) || "ಪಾವತಿ"} ದಾಖಲಿಸಲಾಗಿದೆ. ಬಾಕಿ ${INR(v.outstanding)}.`,
-  PAYMENT_PROMISE: (v) => `ಸರಿ. ${INR(v.outstanding)} ${v.dueDate ?? "ನಿಗದಿತ ದಿನಾಂಕ"} ರೊಳಗೆ ಪಾವತಿಸುವ ಭರವಸೆ ದಾಖಲು.`,
-  GENERAL_HELP: () => `ಬಾಕಿ, ಸಾಲ, ಆರ್ಡರ್ ಅಥವಾ ಪಾವತಿಯಲ್ಲಿ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ. ಏನು ಬೇಕು?`,
-  END_CALL: (v) => `ಧನ್ಯವಾದ ${v.customerName ?? ""}. ಶುಭ ದಿನ. ಬಾಯ್.`,
-  ESCALATION: () => `ನಾನು ನಿಮ್ಮನ್ನು ಅಂಗಡಿಯವರಿಗೆ ಸಂಪರ್ಕಿಸುತ್ತಿದ್ದೇನೆ.`,
-  FALLBACK: () => `ನನಗೆ ಸ್ಪಷ್ಟವಾಗಿ ಅರ್ಥವಾಗಲಿಲ್ಲ. ಬ್ಯಾಲೆನ್ಸ್ ನೋಡಬೇಕೇ, ಕ್ರೆಡಿಟ್ ಬೇಕೇ, ಅಥವಾ ಪಾವತಿ ಬಗ್ಗೆ ಸಹಾಯ ಬೇಕೇ?`,
+  GREETING: () => `KhataOS ge swagatha. Naanu indu nimage hege sahaaya maadabahudu?`,
+  BALANCE_INQUIRY: (v) => `Nimma prastuta baaki motta ${INR(v.outstanding)} aagide.`,
+  CREDIT_APPROVAL: (v) => `${INR(v.amount)} credit vinantiyannu anumodisalagide.`,
+  CREDIT_CONDITIONAL: (v) => `${INR(v.amount)} anumodisabahudu, aadare ee vaara ${INR(v.outstanding)} paavatisabeku.`,
+  CREDIT_REJECTION: () => `Kshamisi, ee samayadalli nimma credit vinantiyannu anumodisalu saadhyavilla.`,
+  ORDER_CONFIRMATION: () => `Nimma order annu nimma khaategе seerisalagide.`,
+  PAYMENT_REMINDER: (v) => `Nimma mele ${INR(v.outstanding)} baaki motta ide.`,
+  SETTLEMENT_OFFER: () => `Nimma paavati baddhateyannu daakhalisalaagide.`,
+  COLLECTIONS_FOLLOWUP: (v) => `Nimma mele ${INR(v.outstanding)} baaki motta ide.`,
+  REPAYMENT_THANKS: () => `Nimma paavatiyannu yashasviyaagi daakhalisalaagide.`,
+  PAYMENT_CONFIRMATION: () => `Nimma paavatiyannu yashasviyaagi daakhalisalaagide.`,
+  PAYMENT_PROMISE: () => `Nimma paavati baddhateyannu daakhalisalaagide.`,
+  GENERAL_HELP: () => `Naanu balance, credit, paavati mattu khaate maahitiyalli sahaaya maadabahudu.`,
+  END_CALL: () => `KhataOS ge kare maadidakkaagi dhanyavaadagalu. Olleya dina.`,
+  ESCALATION: () => `Naanu nimmannu angadiyavarige sampark maaduttiddene.`,
+  FALLBACK: () => `Naanu balance, credit, paavati mattu khaate maahitiyalli sahaaya maadabahudu. Nimage enu beku?`,
 };
 
 const T: Record<TemplateLang, Bag> = { en, hi, hinglish, kn };
@@ -133,7 +122,7 @@ export function pickTemplate(intent: Intent, decision?: "approve" | "reject" | "
 export function languageToTemplateLang(lang: string): TemplateLang {
   switch (lang) {
     case "Hindi": return "hi";
-    case "Hinglish": return "hinglish";
+    case "Hinglish": return "hi";
     case "Kannada": return "kn";
     case "English": return "en";
     default: return "en";

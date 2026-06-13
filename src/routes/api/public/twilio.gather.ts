@@ -1,15 +1,22 @@
-// Twilio Gather webhook — runs the orchestration pipeline and replies
-// with TwiML. END_CALL intent issues a farewell and hangs up the call.
+// Twilio Gather webhook — locked-language speech loop.
 //
-// CRITICAL: response language is selected PER TURN from the *current*
-// transcript (commerce.language), never locked to a conversation default.
-// The Twilio <Gather> language hint also adapts, but defaults to en-IN
-// because en-IN STT reliably captures both English and romanised
-// Hinglish — using hi-IN would force Devanagari transcription on
-// English speech and trap the agent in Hindi.
+// Architecture:
+//   * Language is LOCKED for the entire call (selected via DTMF menu).
+//   * No automatic language detection. The `lang` query param + the
+//     call record's `language` field are the single source of truth.
+//   * Pressing 9 at any time redirects to /menu so the caller can
+//     re-select a language.
+//   * All replies are rendered in the locked template language and
+//     spoken with the matching Twilio voice.
+//   * END_CALL intent plays the localised farewell and hangs up.
+
 import { createFileRoute } from "@tanstack/react-router";
 import { appendTurnServer, getCall, patchCall, putCall } from "@/lib/khataos/call-store.server";
 import { processTurn } from "@/lib/khataos/orchestrator.server";
+import {
+  codeToLanguage, codeToTemplateLang, isLangCode, voiceForCode,
+  sttLocaleForCode, changeLangHint, languageToCode, type LangCode,
+} from "@/lib/khataos/ivr";
 
 function escapeXml(s: string) {
   return s.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]!));
@@ -21,55 +28,19 @@ function twiml(xml: string) {
   });
 }
 
-// Twilio <Say> voice + locale mapping. Polly.Aditi (hi-IN) for Hindi,
-// Polly.Aditi (en-IN) for Hinglish/Kannada fallback, Polly.Raveena
-// (en-IN) for English.
-function voiceFor(lang: string): { voice: string; locale: string } {
-  switch (lang) {
-    case "Hindi":
-      return { voice: "Polly.Aditi", locale: "hi-IN" };
-    case "Hinglish":
-      return { voice: "Polly.Aditi", locale: "en-IN" };
-    case "Kannada":
-      return { voice: "Polly.Aditi", locale: "en-IN" };
-    default:
-      return { voice: "Polly.Raveena", locale: "en-IN" };
-  }
-}
-
-// Localised continuation prompt ("anything else?").
-function continuationPrompt(lang: string): string {
-  switch (lang) {
-    case "Hindi": return "Aur kuch chahiye?";
-    case "Hinglish": return "Aur kuch chahiye?";
-    case "Kannada": return "Innenaadru beku?";
-    default: return "Anything else?";
-  }
-}
-
-// Smart STT hint:
-//  - en-IN by default (covers English + romanised Hinglish)
-//  - hi-IN only when the *last customer turn* contained Devanagari script
-//  - kn-IN only when the last customer turn contained Kannada script
-// We never lock to hi-IN after a single Hindi turn — the next turn could
-// be English again.
-function gatherLangHint(lastCustomerText?: string): string {
-  if (!lastCustomerText) return "en-IN";
-  if (/[\u0900-\u097F]/.test(lastCustomerText)) return "hi-IN";
-  if (/[\u0C80-\u0CFF]/.test(lastCustomerText)) return "kn-IN";
-  return "en-IN";
-}
-
 export const Route = createFileRoute("/api/public/twilio/gather")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         const form = await request.formData();
         const url = new URL(request.url);
+        const base = url.origin;
         const cid = url.searchParams.get("cid") ?? "";
         const speech = String(form.get("SpeechResult") ?? "").trim();
-        const base = url.origin;
+        const digits = String(form.get("Digits") ?? "").trim();
 
+        // ===== Resolve locked language =====
+        // Priority: URL param → call record → fallback "en"
         let call = getCall(cid);
         if (!call) {
           putCall({
@@ -79,19 +50,42 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
           });
           call = getCall(cid)!;
         }
+        const urlCode = url.searchParams.get("lang");
+        const code: LangCode = isLangCode(urlCode)
+          ? urlCode
+          : languageToCode(call.language);
+        const tplLang = codeToTemplateLang(code);
+        const v = voiceForCode(code);
+        const stt = sttLocaleForCode(code);
+        const hint = changeLangHint(code);
 
+        // ===== "Press 9" → change language =====
+        if (digits === "9") {
+          appendTurnServer(cid, {
+            role: "system", at: Date.now(),
+            text: "Caller pressed 9 — returning to language menu.",
+          });
+          return twiml(`<Redirect method="POST">${base}/api/public/twilio/voice</Redirect>`);
+        }
+
+        // ===== No speech captured =====
         if (!speech) {
-          const v = voiceFor("English");
+          const reprompt = code === "hi" ? "Maaf kijiye, samajh nahi aaya. Kripya dohraayein."
+            : code === "kn" ? "Kshamisi, kelisalilla. Dayavittu punah heli."
+            : "Sorry, I didn't catch that. Could you repeat?";
           return twiml(`
-            <Gather input="speech" speechTimeout="auto" language="en-IN"
-                    action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}" method="POST">
-              <Say voice="${v.voice}" language="${v.locale}">Sorry, I didn't catch that. Could you repeat?</Say>
+            <Gather input="speech dtmf" numDigits="1" speechTimeout="auto" language="${stt}"
+                    action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}"
+                    method="POST" speechModel="experimental_conversations">
+              <Say voice="${v.voice}" language="${v.locale}">${escapeXml(reprompt)}</Say>
+              <Say voice="${v.voice}" language="${v.locale}">${escapeXml(hint)}</Say>
             </Gather>
             <Hangup/>
           `);
         }
 
-        patchCall(cid, { state: "thinking" });
+        // ===== Run orchestrator with LOCKED language =====
+        patchCall(cid, { state: "thinking", language: codeToLanguage(code) });
         const result = await processTurn(speech, {
           customerId: call.customerId,
           customerName: call.customerName,
@@ -99,31 +93,24 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
           outstanding: 1500,
           creditLimit: 5000,
           reliability: 80,
+          forcedLanguage: codeToLanguage(code),
+          forcedTemplateLang: tplLang,
         });
 
         result.turns.forEach((t) => appendTurnServer(cid, t));
 
-        // Per-turn voice — driven by THIS utterance's detected language.
-        const v = voiceFor(result.commerce.language);
-
-        // ====== END_CALL → graceful hangup ======
+        // ===== END_CALL → graceful farewell + hangup =====
         if (result.endCall) {
           patchCall(cid, {
-            state: "ending",
-            currentIntent: "END_CALL",
-            currentAgent: "InsightsAgent",
-            language: result.commerce.language,
-            recommendation: "Customer ended the call.",
+            state: "ending", currentIntent: "END_CALL", currentAgent: "InsightsAgent",
+            language: codeToLanguage(code), recommendation: "Customer ended the call.",
           });
           setTimeout(() => {
             const c = getCall(cid);
             if (!c) return;
             const dur = Math.round((Date.now() - c.startedAt) / 1000);
             patchCall(cid, {
-              state: "completed",
-              endedAt: Date.now(),
-              durationSec: dur,
-              outcome: "info",
+              state: "completed", endedAt: Date.now(), durationSec: dur, outcome: "info",
               summary: c.transcript.filter((t) => t.role === "agent").slice(-2).map((t) => t.text).join(" ").slice(0, 200),
             });
           }, 1500);
@@ -138,20 +125,16 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
           state: "responding",
           currentIntent: result.commerce.intent,
           currentAgent: result.financial.agent,
-          language: result.commerce.language,
+          language: codeToLanguage(code),
           recommendation: result.financial.reasoning,
         });
 
-        // STT hint follows script of the latest customer utterance only.
-        const nextLangHint = gatherLangHint(speech);
-        const followUp = continuationPrompt(result.commerce.language);
-
         return twiml(`
           <Say voice="${v.voice}" language="${v.locale}">${escapeXml(result.reply)}</Say>
-          <Gather input="speech" speechTimeout="auto" language="${nextLangHint}"
-                  action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}" method="POST"
-                  speechModel="experimental_conversations">
-            <Say voice="${v.voice}" language="${v.locale}">${escapeXml(followUp)}</Say>
+          <Gather input="speech dtmf" numDigits="1" speechTimeout="auto" language="${stt}"
+                  action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}"
+                  method="POST" speechModel="experimental_conversations">
+            <Say voice="${v.voice}" language="${v.locale}">${escapeXml(hint)}</Say>
           </Gather>
           <Hangup/>
         `);

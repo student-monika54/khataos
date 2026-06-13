@@ -16,12 +16,21 @@ export type ConversationContext = {
   reliability: number;
   dueDate?: string;
   daysOverdue?: number;
+  // When provided, the orchestrator skips language auto-detection and
+  // uses these instead. Set by the Twilio IVR after the caller picks
+  // a language from the DTMF menu (locked for the rest of the call).
+  forcedLanguage?: string;
+  forcedTemplateLang?: "en" | "hi" | "hinglish" | "kn";
 };
 
 export async function processTurn(text: string, ctx: ConversationContext) {
   const t0 = Date.now();
-  const commerce = runCommerceBrainRules(text);
-  const lang = languageToTemplateLang(commerce.language);
+  const commerceRaw = runCommerceBrainRules(text);
+  // Honour locked language from IVR — never override based on transcript.
+  const commerce = ctx.forcedLanguage
+    ? { ...commerceRaw, language: ctx.forcedLanguage as typeof commerceRaw.language, languageConfidence: 1 }
+    : commerceRaw;
+  const lang = ctx.forcedTemplateLang ?? languageToTemplateLang(commerce.language);
 
   // ====== END_CALL short-circuit ======
   if (commerce.intent === "END_CALL") {
