@@ -163,19 +163,23 @@ export const Route = createFileRoute("/api/public/twilio/record")({
         let transcript = "";
         let detectedLang: SarvamLangCode = "en-IN";
         let sttLatency = 0;
+        let sttTransport: "streaming" | "rest" = "rest";
         try {
           const audio = await fetchTwilioRecording(recordingUrl);
-          const stt = await sarvamTranslateSpeech(audio.bytes, "audio.mp3", audio.contentType);
+          const stt = audio.contentType.toLowerCase().includes("wav")
+            ? await sarvamTranslateSpeechStreaming(audio.bytes, 8000)
+            : await sarvamTranslateSpeech(audio.bytes, audio.filename, audio.contentType);
           transcript = stt.transcript;
           detectedLang = stt.languageCode;
           sttLatency = stt.latencyMs;
+          sttTransport = stt.transport ?? sttTransport;
         } catch (err) {
           console.error("[Sarvam pipeline] STT error", err);
           if (isAuthError(err)) {
             patchCall(cid, { state: "failed", summary: "Sarvam API key rejected authentication." });
           }
           return twiml(`
-            ${fallbackSayTwiml(isAuthError(err) ? "KhataOS speech is not configured correctly. Please update the Sarvam API key." : "Sorry, I could not understand. Please try again.", "en-IN")}
+            ${fallbackSayTwiml(isAuthError(err) ? "KhataOS speech needs a valid Sarvam key from the Sarvam dashboard." : "Sorry, I could not hear that clearly. Please say the items again.", "en-IN")}
             ${recordTwiml(base, cid)}
           `);
         }
@@ -190,7 +194,7 @@ export const Route = createFileRoute("/api/public/twilio/record")({
         appendTurnServer(cid, {
           role: "customer", at: Date.now(), text: transcript, rawTranscript: transcript,
           language: langToLabel(detectedLang),
-          pipelineStage: "stt", sttProvider: "sarvam", deepgramModel: "sarvam:saaras-v3:translate",
+          pipelineStage: "stt", sttProvider: "sarvam", deepgramModel: `sarvam:saaras-v3:translate:${sttTransport}`,
           deepgramDetectedLanguage: detectedLang, deepgramLatencyMs: sttLatency,
         });
 
@@ -244,7 +248,7 @@ export const Route = createFileRoute("/api/public/twilio/record")({
           putTts(ttsId, tts.audio, tts.contentType);
           playFragment = `<Play>${base}/api/public/twilio/tts/${encodeURIComponent(ttsId)}</Play>`;
           console.log("[Sarvam pipeline]", JSON.stringify({
-            cid, language: detectedLang, transcript, intent: ctxOut.commerce.intent,
+            cid, language: detectedLang, transcript, sttTransport, intent: ctxOut.commerce.intent,
             items: ctxOut.commerce.items, decision: ctxOut.financial.decision,
             sttLatency, ttsLatency: tts.latencyMs,
           }));
