@@ -19,7 +19,7 @@ import {
   appendTurnServer, getCall, patchCall, putCall,
 } from "@/lib/khataos/call-store.server";
 import {
-  isSarvamEnabled, sarvamTranslateSpeech, sarvamTextToSpeech,
+  isSarvamEnabled, sarvamTranslateSpeech, sarvamTranslateSpeechStreaming, sarvamTextToSpeech,
   type SarvamLangCode,
 } from "@/lib/khataos/sarvam.server";
 import { putTts } from "@/lib/khataos/tts-cache.server";
@@ -58,18 +58,26 @@ function isAuthError(err: unknown): boolean {
 // Fetch the Twilio recording bytes. Tries direct basic-auth first
 // (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN), falls back to the Lovable
 // Twilio connector gateway.
-async function fetchTwilioRecording(recordingUrl: string): Promise<{ bytes: Uint8Array; contentType: string }> {
-  const mp3Url = recordingUrl.endsWith(".mp3") ? recordingUrl : `${recordingUrl}.mp3`;
+async function fetchTwilioRecording(recordingUrl: string): Promise<{ bytes: Uint8Array; contentType: string; filename: string }> {
+  const clean = recordingUrl.replace(/\.(mp3|wav)$/i, "");
+  const wavUrl = `${clean}.wav`;
+  const mp3Url = `${clean}.mp3`;
+  const candidates = [wavUrl, mp3Url];
 
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
   if (sid && token) {
     const auth = "Basic " + btoa(`${sid}:${token}`);
-    for (let i = 0; i < 3; i++) {
-      const r = await fetch(mp3Url, { headers: { Authorization: auth } });
-      if (r.ok) return { bytes: new Uint8Array(await r.arrayBuffer()), contentType: r.headers.get("content-type") ?? "audio/mpeg" };
-      if (r.status !== 404) throw new Error(`Twilio recording fetch ${r.status}`);
-      await new Promise((res) => setTimeout(res, 600));
+    for (const mediaUrl of candidates) {
+      for (let i = 0; i < 3; i++) {
+        const r = await fetch(mediaUrl, { headers: { Authorization: auth } });
+        if (r.ok) {
+          const isWav = mediaUrl.endsWith(".wav");
+          return { bytes: new Uint8Array(await r.arrayBuffer()), contentType: r.headers.get("content-type") ?? (isWav ? "audio/wav" : "audio/mpeg"), filename: isWav ? "audio.wav" : "audio.mp3" };
+        }
+        if (r.status !== 404) throw new Error(`Twilio recording fetch ${r.status}`);
+        await new Promise((res) => setTimeout(res, 600));
+      }
     }
   }
 
@@ -79,17 +87,19 @@ async function fetchTwilioRecording(recordingUrl: string): Promise<{ bytes: Uint
     // RecordingUrl looks like: https://api.twilio.com/2010-04-01/Accounts/AC.../Recordings/RE...
     const m = recordingUrl.match(/Recordings\/(RE[a-zA-Z0-9]+)/);
     if (m) {
-      const gwUrl = `https://connector-gateway.lovable.dev/twilio/Recordings/${m[1]}.mp3`;
-      for (let i = 0; i < 3; i++) {
-        const r = await fetch(gwUrl, {
-          headers: {
-            "Authorization": `Bearer ${lovKey}`,
-            "X-Connection-Api-Key": twKey,
-          },
-        });
-        if (r.ok) return { bytes: new Uint8Array(await r.arrayBuffer()), contentType: r.headers.get("content-type") ?? "audio/mpeg" };
-        if (r.status !== 404) throw new Error(`Twilio gateway recording fetch ${r.status}`);
-        await new Promise((res) => setTimeout(res, 600));
+      for (const ext of ["wav", "mp3"] as const) {
+        const gwUrl = `https://connector-gateway.lovable.dev/twilio/Recordings/${m[1]}.${ext}`;
+        for (let i = 0; i < 3; i++) {
+          const r = await fetch(gwUrl, {
+            headers: {
+              "Authorization": `Bearer ${lovKey}`,
+              "X-Connection-Api-Key": twKey,
+            },
+          });
+          if (r.ok) return { bytes: new Uint8Array(await r.arrayBuffer()), contentType: r.headers.get("content-type") ?? (ext === "wav" ? "audio/wav" : "audio/mpeg"), filename: `audio.${ext}` };
+          if (r.status !== 404) throw new Error(`Twilio gateway recording fetch ${r.status}`);
+          await new Promise((res) => setTimeout(res, 600));
+        }
       }
     }
   }
@@ -153,19 +163,23 @@ export const Route = createFileRoute("/api/public/twilio/record")({
         let transcript = "";
         let detectedLang: SarvamLangCode = "en-IN";
         let sttLatency = 0;
+        let sttTransport: "streaming" | "rest" = "rest";
         try {
           const audio = await fetchTwilioRecording(recordingUrl);
-          const stt = await sarvamTranslateSpeech(audio.bytes, "audio.mp3", audio.contentType);
+          const stt = audio.contentType.toLowerCase().includes("wav")
+            ? await sarvamTranslateSpeechStreaming(audio.bytes, 8000)
+            : await sarvamTranslateSpeech(audio.bytes, audio.filename, audio.contentType);
           transcript = stt.transcript;
           detectedLang = stt.languageCode;
           sttLatency = stt.latencyMs;
+          sttTransport = stt.transport ?? sttTransport;
         } catch (err) {
           console.error("[Sarvam pipeline] STT error", err);
           if (isAuthError(err)) {
             patchCall(cid, { state: "failed", summary: "Sarvam API key rejected authentication." });
           }
           return twiml(`
-            ${fallbackSayTwiml(isAuthError(err) ? "KhataOS speech is not configured correctly. Please update the Sarvam API key." : "Sorry, I could not understand. Please try again.", "en-IN")}
+            ${fallbackSayTwiml(isAuthError(err) ? "KhataOS speech needs a valid Sarvam key from the Sarvam dashboard." : "Sorry, I could not hear that clearly. Please say the items again.", "en-IN")}
             ${recordTwiml(base, cid)}
           `);
         }
@@ -180,7 +194,7 @@ export const Route = createFileRoute("/api/public/twilio/record")({
         appendTurnServer(cid, {
           role: "customer", at: Date.now(), text: transcript, rawTranscript: transcript,
           language: langToLabel(detectedLang),
-          pipelineStage: "stt", sttProvider: "sarvam", deepgramModel: "sarvam:saaras-v3:translate",
+          pipelineStage: "stt", sttProvider: "sarvam", deepgramModel: `sarvam:saaras-v3:translate:${sttTransport}`,
           deepgramDetectedLanguage: detectedLang, deepgramLatencyMs: sttLatency,
         });
 
@@ -234,7 +248,7 @@ export const Route = createFileRoute("/api/public/twilio/record")({
           putTts(ttsId, tts.audio, tts.contentType);
           playFragment = `<Play>${base}/api/public/twilio/tts/${encodeURIComponent(ttsId)}</Play>`;
           console.log("[Sarvam pipeline]", JSON.stringify({
-            cid, language: detectedLang, transcript, intent: ctxOut.commerce.intent,
+            cid, language: detectedLang, transcript, sttTransport, intent: ctxOut.commerce.intent,
             items: ctxOut.commerce.items, decision: ctxOut.financial.decision,
             sttLatency, ttsLatency: tts.latencyMs,
           }));
