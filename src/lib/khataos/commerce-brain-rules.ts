@@ -204,29 +204,42 @@ function extractItems(t: string): { name: string; quantity: string }[] {
   return out;
 }
 
-function detectIntent(t: string, items: number, amount?: number): Intent {
-  const lower = t.toLowerCase();
-  if (PAYMENT_CONFIRM.test(t)) return "PAYMENT_CONFIRMATION";
-  if (PAYMENT_PROMISE.test(t)) return "PAYMENT_PROMISE";
-  if (/^(hi|hello|namaste|namaskar|salaam|hey|haanji|haan\s?ji|बोलिए|नमस्ते)\b/i.test(lower) && t.length < 40) return "GREETING";
-  if (/(balance|bakaaya|bakaya|baki|kitna\s?bacha|kitne\s?ka|how\s?much|outstanding|owe|mera\s?khata|खाता|बकाया)/i.test(t)) return "BALANCE_INQUIRY";
-  if (/(trust|score|rating|bharosa|भरोसा)/i.test(t)) return "TRUST_INQUIRY";
-  if (/(pay\b|paid|repay|chukana|chuka|chuk|settle\s?now|payment|भुगतान)/i.test(t)) return "REPAYMENT";
-  if (/(settle|installment|kist|next\s?week|agle\s?hafte|किस्त)/i.test(t)) return "SETTLEMENT";
-  if (/(reminder|overdue|due\s?since)/i.test(t)) return "COLLECTIONS_FOLLOWUP";
-  if (/(speak\s?to|connect\s?to|shopkeeper|owner|dukaan|दुकानदार|मालिक)/i.test(t)) return "ESCALATE";
-  if (items > 0) return "KHATA_ORDER";
-  if (amount || /(udhaar|udhar|credit|khate\s?mein|loan|chahiye|mangta|mangti|उधार|चाहिए)/i.test(t)) return "CREDIT_REQUEST";
-  if (/(help|madad|sahayata|मदद)/i.test(t)) return "GENERAL_HELP";
-  return "UNKNOWN";
+function detectIntent(t: string, items: number, amount?: number): { intent: Intent; confidence: number } {
+  const normalized = normalise(t);
+  if (isEndCall(t)) return { intent: "END_CALL", confidence: 0.99 };
+  if (/^(hi|hello|namaste|namaskar|salaam|hey|haanji|haan\s?ji|ಬೋಲಿ|नमस्ते|नमस्कार)\b/i.test(normalized) && normalized.length < 40) {
+    return { intent: "GREETING", confidence: 0.88 };
+  }
+
+  let best: { intent: Intent; confidence: number; hits: number } = { intent: "UNKNOWN", confidence: 0.2, hits: 0 };
+  for (const [intent, patterns] of Object.entries(INTENT_PATTERNS) as [Intent, RegExp[]][]) {
+    const hits = countMatches(t, patterns) + countMatches(normalized, patterns);
+    if (hits > best.hits) {
+      best = { intent, hits, confidence: Math.min(0.72 + hits * 0.1, 0.96) };
+    }
+  }
+
+  if (items > 0 && best.intent === "UNKNOWN") return { intent: "KHATA_ORDER", confidence: 0.82 };
+  if (amount && hasAny(t, INTENT_PATTERNS.CREDIT_REQUEST ?? [])) return { intent: "CREDIT_REQUEST", confidence: Math.max(best.confidence, 0.91) };
+  if (amount && best.intent === "UNKNOWN") return { intent: "CREDIT_REQUEST", confidence: 0.74 };
+  return { intent: best.intent, confidence: best.confidence };
 }
 
 export function runCommerceBrainRules(text: string): CommerceBrainOutput {
-  const endCall = isEndCall(text);
   const items = extractItems(text);
   const amount = extractAmount(text);
-  const intent: Intent = endCall ? "END_CALL" : detectIntent(text, items.length, amount);
-  const language = detectLanguage(text);
-  const confidence = endCall ? 0.99 : Math.min(0.6 + items.length * 0.1 + (amount ? 0.15 : 0) + (intent !== "UNKNOWN" ? 0.15 : 0), 0.98);
-  return { intent, language, items, amount, rawText: text, confidence, endCall };
+  const languageResult = detectLanguage(text);
+  const intentResult = detectIntent(text, items.length, amount);
+  const confidence = Math.min((languageResult.confidence + intentResult.confidence) / 2, 0.99);
+  return {
+    intent: intentResult.intent,
+    language: languageResult.language,
+    items,
+    amount,
+    rawText: text,
+    confidence,
+    languageConfidence: languageResult.confidence,
+    intentConfidence: intentResult.confidence,
+    endCall: intentResult.intent === "END_CALL",
+  };
 }
