@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppHeader, AppScreen, Section, StatCard } from "@/components/app/AppShell";
+import { CopilotDrawer } from "@/components/app/CopilotDrawer";
+import { AgentTimeline, stagesUpTo } from "@/components/app/AgentTimeline";
 import { useEffect, useState } from "react";
 import { AGENT_META, type CallRecord } from "@/lib/khataos/calls";
 import { useKhata, formatINR } from "@/lib/khataos/data";
@@ -35,7 +37,7 @@ function LiveView() {
           <div className="rounded-2xl border border-dashed border-border bg-elevated/40 p-6 text-center">
             <Activity className="mx-auto h-6 w-6 text-emerald" />
             <h3 className="mt-3 font-display text-base font-semibold">No active calls</h3>
-            <p className="mt-1 text-[12px] text-ink-muted">When a customer dials KhataOS, you'll see live transcript, intent, and AI recommendation here.</p>
+            <p className="mt-1 text-[12px] text-ink-muted">When a customer dials KhataOS, you'll see live transcript, intent, AI copilot, and pipeline activity here.</p>
             <Link to="/app/customer/call" className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald px-4 py-2 text-[12px] font-semibold text-[#06140b]">
               <Phone className="h-3.5 w-3.5" /> Trigger demo call
             </Link>
@@ -57,7 +59,7 @@ function LiveView() {
           <span className="h-1.5 w-1.5 rounded-full bg-emerald animate-pulse" /> {call.state}
         </span>
       } />
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-3 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <StatCard label="Trust score" value={String(customer?.trustScore ?? "—")} accent />
           <StatCard label="Outstanding" value={formatINR(customer?.outstanding ?? 0)} />
@@ -65,7 +67,7 @@ function LiveView() {
           <StatCard label="Risk" value={(customer?.riskTag ?? "low").toUpperCase()} />
         </div>
 
-        <div className="mt-4 rounded-2xl border border-border bg-elevated/60 p-4">
+        <div className="rounded-2xl border border-border bg-elevated/60 p-4">
           <div className="text-[10px] uppercase tracking-[0.14em] text-ink-subtle">Current intent · agent · language</div>
           <div className="mt-1.5 flex flex-wrap gap-2">
             <span className="rounded-full border border-emerald/40 bg-emerald/10 px-2.5 py-1 text-[11px] font-semibold text-emerald">{call.currentIntent ?? "—"}</span>
@@ -87,6 +89,14 @@ function LiveView() {
             </div>
           )}
         </div>
+
+        <CopilotDrawer customer={customer} intent={call.currentIntent} />
+
+        <AgentTimeline
+          active={undefined}
+          completed={stagesUpTo("tts")}
+          intent={call.currentIntent}
+        />
       </div>
 
       <Section title="Live transcript">
