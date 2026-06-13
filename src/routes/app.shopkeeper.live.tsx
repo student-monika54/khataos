@@ -3,9 +3,9 @@ import { AppHeader, AppScreen, Section, StatCard } from "@/components/app/AppShe
 import { CopilotDrawer } from "@/components/app/CopilotDrawer";
 import { AgentTimeline, stagesUpTo } from "@/components/app/AgentTimeline";
 import { useEffect, useState } from "react";
-import { AGENT_META, type CallRecord } from "@/lib/khataos/calls";
+import { AGENT_META, type CallRecord, type TranscriptTurn } from "@/lib/khataos/calls";
 import { useKhata, formatINR } from "@/lib/khataos/data";
-import { Activity, Phone, AlertCircle, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
+import { Activity, Phone, AlertCircle, ShieldCheck, CheckCircle2, XCircle, Bug } from "lucide-react";
 
 export const Route = createFileRoute("/app/shopkeeper/live")({ component: LiveView });
 
