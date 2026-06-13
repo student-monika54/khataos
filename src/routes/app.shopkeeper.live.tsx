@@ -187,16 +187,31 @@ function DebugCard({ turn, agentTurn }: { turn?: TranscriptTurn; agentTurn?: Tra
   const noMatch = turn.noIntentMatch || turn.intent === "UNKNOWN";
   const fallbackFired = !!agentTurn?.fallback;
   const lang = turn.language ?? "—";
-  const sttLocale = lang === "Hindi" || lang === "Hinglish" ? "hi-IN"
-    : lang === "Kannada" ? "kn-IN" : lang === "English" ? "en-IN" : "—";
+  const expectedStt = turn.expectedSttLocale
+    ?? (lang === "Hindi" || lang === "Hinglish" ? "hi-IN"
+        : lang === "Kannada" ? "kn-IN" : lang === "English" ? "en-IN" : "—");
+  const actualStt = turn.sttLocale ?? "—";
+  const sttModel = turn.sttModel ?? "—";
+  const sttMatch = actualStt === expectedStt;
   const voiceLabel = lang === "Hindi" || lang === "Hinglish" ? "Polly.Aditi (hi-IN)"
     : lang === "Kannada" ? "Google.kn-IN-Standard-A (kn-IN)"
     : lang === "English" ? "Polly.Raveena (en-IN)" : "—";
   const items = turn.items ?? [];
+  const rawT = turn.rawTranscript ?? turn.text;
+  const tLen = turn.transcriptLength ?? rawT.length;
+  const sConf = turn.speechConfidence;
   const rows: [string, React.ReactNode][] = [
-    ["Raw Transcript", <span className="text-ink">"{turn.rawTranscript ?? turn.text}"</span>],
     ["Selected Language", <span className="text-ink">{lang}</span>],
-    ["Speech Recognition", <span className="text-ink">{sttLocale}</span>],
+    ["Expected STT Locale", <span className="text-ink">{expectedStt}</span>],
+    ["Actual STT Locale", <span className={sttMatch ? "text-emerald" : "text-amber-400 font-semibold"}>{actualStt}{sttMatch ? " ✓" : " ✗ MISMATCH"}</span>],
+    ["STT Model", <span className="text-ink">{sttModel}</span>],
+    ["Raw Transcript (Twilio)", rawT
+      ? <span className="text-ink">"{rawT}"</span>
+      : <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-amber-400 font-semibold">EMPTY — STT returned nothing</span>],
+    ["Transcript Length", <span className={tLen === 0 ? "text-amber-400 font-semibold" : "text-ink"}>{tLen} chars</span>],
+    ["Speech Confidence", sConf != null
+      ? <span className={sConf < 0.5 ? "text-amber-400 font-semibold" : "text-ink"}>{Math.round(sConf * 100)}%{sConf < 0.5 ? " · LOW" : ""}</span>
+      : <span className="text-ink-subtle">— (not reported)</span>],
     ["Voice Output", <span className="text-ink">{voiceLabel}</span>],
     ["Language Confidence", <span className="text-ink">{turn.languageConfidence != null ? `${Math.round(turn.languageConfidence * 100)}%` : "—"}</span>],
     ["Detected Intent", noMatch
