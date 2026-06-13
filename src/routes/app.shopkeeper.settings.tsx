@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, XCircle, Cpu, Brain, Phone, Wand2 } from "lucide-react";
 import { TEMPLATE_CATALOG } from "@/lib/khataos/templates";
 import { AGENT_META } from "@/lib/khataos/calls";
+import { useDemoMode, toggleDemoMode } from "@/lib/khataos/demo-mode";
 
 export const Route = createFileRoute("/app/shopkeeper/settings")({ component: Settings });
 
 function Settings() {
   const [health, setHealth] = useState<any>(null);
   const [latency, setLatency] = useState<number | null>(null);
+  const demoEnabled = useDemoMode((s) => s.enabled);
 
   useEffect(() => { fetch("/api/khataos/health").then((r) => r.json()).then(setHealth); }, []);
 
@@ -23,6 +25,28 @@ function Settings() {
     <AppScreen>
       <AppHeader title="Integrations" subtitle="Calling infrastructure" />
       <div className="px-4 pt-3 space-y-3">
+        <button
+          onClick={toggleDemoMode}
+          className={`w-full flex items-center justify-between rounded-2xl border p-4 text-left transition ${
+            demoEnabled
+              ? "border-emerald/50 bg-gradient-to-br from-emerald/[0.12] to-elevated/40"
+              : "border-border bg-elevated/60"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`grid h-10 w-10 place-items-center rounded-xl ${demoEnabled ? "bg-emerald/20 text-emerald" : "bg-surface text-ink-subtle"}`}>
+              <Wand2 className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-[13px] font-semibold">Judge / Demo mode</div>
+              <div className="text-[11px] text-ink-muted">Preloaded customers, transcripts, scripted scenarios</div>
+            </div>
+          </div>
+          <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${demoEnabled ? "text-emerald" : "text-ink-subtle"}`}>
+            {demoEnabled ? "ON" : "OFF"}
+          </span>
+        </button>
+
         <StatusCard
           icon={Phone} title="Twilio Voice"
           status={health?.twilio?.configured ? "Connected" : "Not configured"}
