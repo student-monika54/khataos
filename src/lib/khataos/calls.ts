@@ -29,6 +29,8 @@ export type TranscriptTurn = {
   agent?: AgentName;
   templateId?: string;
   language?: string;
+  confidence?: number;
+  templateLang?: string;
   items?: { name: string; quantity: string }[];
   decision?: "approve" | "reject" | "conditional";
   reasoning?: string;
