@@ -8,7 +8,7 @@ import { getCall, patchCall, putCall, appendTurnServer } from "@/lib/khataos/cal
 import { renderTemplate } from "@/lib/khataos/templates";
 import {
   codeToLanguage, codeToTemplateLang, isLangCode, voiceForCode,
-  sttLocaleForCode, sttModelForCode, changeLangHint, type LangCode,
+  changeLangHint, type LangCode,
 } from "@/lib/khataos/ivr";
 
 function twiml(xml: string) {
@@ -72,7 +72,6 @@ export const Route = createFileRoute("/api/public/twilio/menu")({
 
         const tplLang = codeToTemplateLang(code);
         const v = voiceForCode(code);
-        const stt = sttLocaleForCode(code);
         const greeting = renderTemplate("GREETING", {}, tplLang);
         const hint = changeLangHint(code);
 
@@ -88,15 +87,21 @@ export const Route = createFileRoute("/api/public/twilio/menu")({
           language, agent: "InsightsAgent",
         });
 
-        // First speech gather. dtmf+speech so caller can press 9 to switch language.
+        // First utterance capture — use <Record> so audio can be sent to
+        // Deepgram. Twilio's native Gather speech is now only a failover
+        // path inside /recording when Deepgram is unavailable.
         return twiml(`
           <Say voice="${v.voice}" language="${v.locale}">${escapeXml(greeting)}</Say>
-          <Gather input="speech dtmf" numDigits="1" speechTimeout="auto" language="${stt}"
-                  action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}"
-                  method="POST" speechModel="${sttModelForCode(code)}">
-            <Say voice="${v.voice}" language="${v.locale}">${escapeXml(hint)}</Say>
-          </Gather>
-          <Redirect method="POST">${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}</Redirect>
+          <Say voice="${v.voice}" language="${v.locale}">${escapeXml(hint)}</Say>
+          <Record
+            action="${base}/api/public/twilio/recording?cid=${encodeURIComponent(cid)}&amp;lang=${code}"
+            method="POST"
+            maxLength="20"
+            timeout="3"
+            trim="trim-silence"
+            playBeep="false"
+            finishOnKey="9#" />
+          <Redirect method="POST">${base}/api/public/twilio/recording?cid=${encodeURIComponent(cid)}&amp;lang=${code}</Redirect>
         `);
       },
     },
