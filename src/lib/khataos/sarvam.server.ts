@@ -13,8 +13,17 @@ const SARVAM_BASE = "https://api.sarvam.ai";
 
 export type SarvamLangCode = "en-IN" | "hi-IN" | "kn-IN" | "ta-IN" | "te-IN";
 
+function getSarvamApiKey(): string {
+  return (process.env.SARVAM_API_KEY ?? "")
+    .trim()
+    .replace(/^['"]|['"]$/g, "")
+    .replace(/^Bearer\s+/i, "")
+    .replace(/^api-subscription-key\s*:\s*/i, "")
+    .trim();
+}
+
 export function isSarvamEnabled(): boolean {
-  return !!process.env.SARVAM_API_KEY;
+  return !!getSarvamApiKey();
 }
 
 // Map Sarvam's detected language code -> our normalised code.
@@ -35,6 +44,32 @@ export type SarvamSttResult = {
   raw?: unknown;
 };
 
+function inputCodecFor(contentType: string, filename: string): string | undefined {
+  const c = contentType.toLowerCase();
+  const f = filename.toLowerCase();
+  if (c.includes("mpeg") || c.includes("mp3") || f.endsWith(".mp3")) return "mp3";
+  if (c.includes("wav") || f.endsWith(".wav")) return "wav";
+  if (c.includes("webm") || f.endsWith(".webm")) return "webm";
+  if (c.includes("ogg") || f.endsWith(".ogg")) return "ogg";
+  if (c.includes("flac") || f.endsWith(".flac")) return "flac";
+  if (c.includes("mp4") || c.includes("m4a") || f.endsWith(".m4a") || f.endsWith(".mp4")) return "mp4";
+  return undefined;
+}
+
+async function postSarvamSpeechForm(endpoint: string, form: FormData, key: string) {
+  const res = await fetch(`${SARVAM_BASE}${endpoint}`, {
+    method: "POST",
+    headers: {
+      "api-subscription-key": key,
+      "Authorization": `Bearer ${key}`,
+    },
+    body: form,
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Sarvam STT failed [${res.status}]: ${text.slice(0, 300)}`);
+  try { return JSON.parse(text); } catch { throw new Error("Sarvam STT bad JSON"); }
+}
+
 // Speech → English. Uses saaras:v3 translate mode which performs language ID
 // + translation in a single low-latency REST call. Twilio <Record> supplies
 // VAD/endpointing; the audio turn is then translated here for the parser.
@@ -43,7 +78,7 @@ export async function sarvamTranslateSpeech(
   filename = "audio.mp3",
   contentType = "audio/mpeg",
 ): Promise<SarvamSttResult> {
-  const key = process.env.SARVAM_API_KEY;
+  const key = getSarvamApiKey();
   if (!key) throw new Error("SARVAM_API_KEY not configured");
 
   const t0 = Date.now();
@@ -53,18 +88,10 @@ export async function sarvamTranslateSpeech(
   form.append("model", "saaras:v3");
   form.append("mode", "translate");
   form.append("language_code", "unknown");
+  const codec = inputCodecFor(contentType, filename);
+  if (codec) form.append("input_audio_codec", codec);
 
-  const res = await fetch(`${SARVAM_BASE}/speech-to-text`, {
-    method: "POST",
-    headers: { "api-subscription-key": key },
-    body: form,
-  });
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`Sarvam STT failed [${res.status}]: ${text.slice(0, 300)}`);
-  }
-  let json: any;
-  try { json = JSON.parse(text); } catch { throw new Error("Sarvam STT bad JSON"); }
+  const json = await postSarvamSpeechForm("/speech-to-text", form, key);
   return {
     transcript: String(json.transcript ?? "").trim(),
     languageCode: normalizeSarvamLang(json.language_code),
@@ -85,7 +112,7 @@ export async function sarvamTextToSpeech(
   text: string,
   language: SarvamLangCode,
 ): Promise<SarvamTtsResult> {
-  const key = process.env.SARVAM_API_KEY;
+  const key = getSarvamApiKey();
   if (!key) throw new Error("SARVAM_API_KEY not configured");
 
   const t0 = Date.now();
@@ -100,6 +127,7 @@ export async function sarvamTextToSpeech(
     method: "POST",
     headers: {
       "api-subscription-key": key,
+      "Authorization": `Bearer ${key}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
