@@ -15,7 +15,7 @@ import { appendTurnServer, getCall, patchCall, putCall } from "@/lib/khataos/cal
 import { processTurn } from "@/lib/khataos/orchestrator.server";
 import {
   codeToLanguage, codeToTemplateLang, isLangCode, voiceForCode,
-  sttLocaleForCode, changeLangHint, languageToCode, type LangCode,
+  sttLocaleForCode, sttModelForCode, changeLangHint, languageToCode, type LangCode,
 } from "@/lib/khataos/ivr";
 
 function escapeXml(s: string) {
@@ -57,6 +57,7 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
         const tplLang = codeToTemplateLang(code);
         const v = voiceForCode(code);
         const stt = sttLocaleForCode(code);
+        const sttModel = sttModelForCode(code);
         const hint = changeLangHint(code);
 
         // ===== "Press 9" → change language =====
