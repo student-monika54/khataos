@@ -82,6 +82,7 @@ function CallScreen() {
   async function onUserSpeech(text: string) {
     setStage("commerce");
     const c = await runCommerceBrain(text);
+    setCommerce(c);
     const customerTurn: TranscriptTurn = {
       role: "customer", text, at: Date.now(),
       intent: c.intent, language: c.language, items: c.items,
