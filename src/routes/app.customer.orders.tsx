@@ -114,9 +114,7 @@ function CustomerOrders() {
         }
         const data: unknown = await r.json();
         const list: LiveOrder[] = Array.isArray(data) ? (data as LiveOrder[]) : [];
-        const mine = list.filter((o) =>
-          o && (o.customerId === me!.id || (typeof o.customerId === "string" && o.customerId.startsWith("c_"))),
-        );
+        const mine = list.filter((o) => o && o.customerId === me!.id);
         if (firstLoad.current) {
           console.log("[CustomerOrders] customerId=", me!.id, "ordersReturned=", list.length, "matched=", mine.length);
         } else {
