@@ -57,6 +57,8 @@ const HINGLISH_HINTS = new RegExp(
   "i",
 );
 
+const KANNADA_ROMAN_HINTS = /\b(nanna|nanage|nanu|eshtu|beku|beka|saala|sala|udara|hana|rupayi|roopayi|kattide|madide|maadide|dhanyavada|namaskara|innenu|baki)\b/i;
+
 // ============ END_CALL DETECTION (HIGHEST PRIORITY) ============
 const END_CALL_PATTERNS: RegExp[] = [
   // English
@@ -175,6 +177,7 @@ function detectLanguage(t: string): { language: DetectedLanguage; confidence: nu
   if (KANNADA_RANGE.test(t)) return { language: "Kannada", confidence: 0.98 };
   if (HINDI_RANGE.test(t)) return { language: "Hindi", confidence: 0.98 };
   const normalized = normalise(t);
+  if (KANNADA_ROMAN_HINTS.test(normalized)) return { language: "Kannada", confidence: 0.86 };
   const hinglishSignals = (normalized.match(HINGLISH_HINTS) ? 1 : 0)
     + countMatches(normalized, [/\b(mera|mujhe|maine|aap|khata|udhaar|rupaye|chahiye|karo|karna|hai|kitna|bakaaya|bakaya)\b/i]);
   if (hinglishSignals > 0) return { language: "Hinglish", confidence: hinglishSignals > 1 ? 0.91 : 0.82 };
