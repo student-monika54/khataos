@@ -64,7 +64,7 @@ function seed(): KhataState {
   const me: Customer = {
     id: "c_me",
     name: "Ramesh Kumar",
-    phone: "+91 98765 43210",
+    phone: "+91 63646 37752",
     trustScore: 82,
     creditLimit: 5000,
     outstanding: 1850,
