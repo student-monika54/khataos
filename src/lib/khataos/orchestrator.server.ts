@@ -81,16 +81,18 @@ export async function processTurn(text: string, ctx: ConversationContext) {
     {
       role: "customer", text, at: t0,
       intent: commerce.intent, language: commerce.language,
+      confidence: commerce.confidence,
       items: commerce.items,
     },
     {
       role: "agent", text: reply, at: Date.now(),
       intent: commerce.intent, agent: financial.agent,
-      templateId: tplId, decision: financial.decision === "info" ? undefined : financial.decision,
+      templateId: tplId, templateLang: lang,
+      decision: financial.decision === "info" ? undefined : financial.decision,
       reasoning: financial.reasoning, latencyMs: Date.now() - t0,
       language: commerce.language,
     },
   ];
 
-  return { commerce, financial, templateId: tplId, reply, turns, newOutstanding, amount, endCall: false };
+  return { commerce, financial, templateId: tplId, templateLang: lang, reply, turns, newOutstanding, amount, endCall: false };
 }
