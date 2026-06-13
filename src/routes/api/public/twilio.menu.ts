@@ -35,7 +35,7 @@ function langMenuXml(base: string, cid: string): string {
             action="${base}/api/public/twilio/menu?cid=${encodeURIComponent(cid)}" method="POST">
       <Say voice="Polly.Raveena" language="en-IN">Please press 1 for English.</Say>
       <Say voice="Polly.Aditi" language="hi-IN">Hindi ke liye 2 dabaayein.</Say>
-      <Say voice="Google.kn-IN-Standard-A" language="kn-IN">Kannada baashege moorane sankhye ottirisi.</Say>
+      <Say voice="Polly.Aditi" language="hi-IN">Kannada ke liye 3 dabaayein.</Say>
     </Gather>
     <Redirect method="POST">${base}/api/public/twilio/voice</Redirect>
   `;
