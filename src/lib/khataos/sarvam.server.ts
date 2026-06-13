@@ -41,8 +41,19 @@ export type SarvamSttResult = {
   transcript: string;          // ENGLISH (translated by saaras)
   languageCode: SarvamLangCode; // detected source language
   latencyMs: number;
+  transport?: "streaming" | "rest";
   raw?: unknown;
 };
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
 
 function inputCodecFor(contentType: string, filename: string): string | undefined {
   const c = contentType.toLowerCase();
@@ -68,6 +79,88 @@ async function postSarvamSpeechForm(endpoint: string, form: FormData, key: strin
   const text = await res.text();
   if (!res.ok) throw new Error(`Sarvam STT failed [${res.status}]: ${text.slice(0, 300)}`);
   try { return JSON.parse(text); } catch { throw new Error("Sarvam STT bad JSON"); }
+}
+
+// Speech → English over Sarvam's WebSocket API. This mirrors the docs:
+// /speech-to-text-translate/ws + saaras:v3 + mode=translate + high VAD.
+// Twilio still provides utterance endpointing; this path sends the captured
+// WAV immediately over the streaming socket and flushes for fast final text.
+export async function sarvamTranslateSpeechStreaming(
+  audio: ArrayBuffer | Uint8Array,
+  sampleRate = 8000,
+): Promise<SarvamSttResult> {
+  const key = getSarvamApiKey();
+  if (!key) throw new Error("SARVAM_API_KEY not configured");
+
+  const t0 = Date.now();
+  const bytes = audio instanceof Uint8Array ? audio : new Uint8Array(audio);
+  const url = new URL(`${SARVAM_BASE}/speech-to-text-translate/ws`);
+  url.protocol = "https:";
+  url.searchParams.set("model", "saaras:v3");
+  url.searchParams.set("mode", "translate");
+  url.searchParams.set("language_code", "unknown");
+  url.searchParams.set("sample_rate", String(sampleRate));
+  url.searchParams.set("input_audio_codec", "wav");
+  url.searchParams.set("high_vad_sensitivity", "true");
+  url.searchParams.set("vad_signals", "true");
+  url.searchParams.set("flush_signal", "true");
+
+  const upgrade = await fetch(url.toString(), {
+    headers: {
+      "Upgrade": "websocket",
+      "api-subscription-key": key,
+      "Authorization": `Bearer ${key}`,
+    },
+  });
+  const socket = (upgrade as Response & { webSocket?: WebSocket & { accept?: () => void } }).webSocket;
+  if (upgrade.status !== 101 || !socket) {
+    const body = await upgrade.text().catch(() => "");
+    throw new Error(`Sarvam streaming STT failed [${upgrade.status}]: ${body.slice(0, 300)}`);
+  }
+
+  socket.accept?.();
+  return await new Promise<SarvamSttResult>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      try { socket.close(); } catch { /* noop */ }
+      reject(new Error("Sarvam streaming STT timed out"));
+    }, 10_000);
+
+    const finish = (result: SarvamSttResult) => {
+      clearTimeout(timeout);
+      try { socket.close(); } catch { /* noop */ }
+      resolve(result);
+    };
+    const fail = (error: unknown) => {
+      clearTimeout(timeout);
+      try { socket.close(); } catch { /* noop */ }
+      reject(error);
+    };
+
+    socket.addEventListener("message", (event) => {
+      if (typeof event.data !== "string") return;
+      let json: any;
+      try { json = JSON.parse(event.data); } catch { return; }
+      if (json.type === "error") return fail(new Error(`Sarvam streaming STT error: ${JSON.stringify(json.data ?? json)}`));
+      const data = json.data ?? json;
+      const transcript = String(data.transcript ?? "").trim();
+      if (!transcript) return;
+      finish({
+        transcript,
+        languageCode: normalizeSarvamLang(data.language_code),
+        latencyMs: Date.now() - t0,
+        transport: "streaming",
+        raw: json,
+      });
+    });
+    socket.addEventListener("error", () => fail(new Error("Sarvam streaming STT socket error")));
+
+    setTimeout(() => {
+      socket.send(JSON.stringify({
+        audio: { data: bytesToBase64(bytes), sample_rate: sampleRate, encoding: "audio/wav" },
+      }));
+      socket.send(JSON.stringify({ type: "flush" }));
+    }, 0);
+  });
 }
 
 // Speech → English. Uses saaras:v3 translate mode which performs language ID
@@ -96,6 +189,7 @@ export async function sarvamTranslateSpeech(
     transcript: String(json.transcript ?? "").trim(),
     languageCode: normalizeSarvamLang(json.language_code),
     latencyMs: Date.now() - t0,
+    transport: "rest",
     raw: json,
   };
 }
