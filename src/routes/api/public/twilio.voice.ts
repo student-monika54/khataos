@@ -8,7 +8,8 @@ function twiml(xml: string) {
   });
 }
 
-const GREETING_EN = "Namaste. This is KhataOS, your AI khata assistant. How can I help today?";
+const GREETING_HI = "नमस्ते, यह KhataOS है। मैं आपकी कैसे मदद कर सकता हूँ?";
+const GREETING_EN = "Namaste. This is KhataOS, your AI khata assistant. You can speak in Hindi, English, Hinglish or Kannada.";
 
 export const Route = createFileRoute("/api/public/twilio/voice")({
   server: {
@@ -31,20 +32,20 @@ export const Route = createFileRoute("/api/public/twilio/voice")({
         const wantStream = url.searchParams.get("stream") === "1";
         const streamUrl = (process.env.TWILIO_MEDIA_STREAM_WSS ?? "").trim();
 
-        // Optional Media Streams: forks live audio to an external WSS endpoint
-        // (Cloudflare Workers/TanStack route handlers can't host raw WS upgrades,
-        // so the stream sink must be an external service — set TWILIO_MEDIA_STREAM_WSS).
         const streamXml = wantStream && streamUrl
           ? `<Start><Stream url="${streamUrl}"><Parameter name="callId" value="${id}"/></Stream></Start>`
           : "";
 
+        // Default the first Gather to hi-IN — most callers are Hindi /
+        // Hinglish speakers. Subsequent gathers adapt per detected language.
         return twiml(`
           ${streamXml}
-          <Say voice="Polly.Aditi" language="en-IN">${GREETING_EN}</Say>
-          <Gather input="speech" speechTimeout="auto" language="en-IN"
+          <Say voice="Polly.Aditi" language="hi-IN">${GREETING_HI}</Say>
+          <Say voice="Polly.Raveena" language="en-IN">${GREETING_EN}</Say>
+          <Gather input="speech" speechTimeout="auto" language="hi-IN"
                   action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(id)}"
                   method="POST" speechModel="experimental_conversations">
-            <Say voice="Polly.Aditi" language="en-IN">I'm listening.</Say>
+            <Say voice="Polly.Aditi" language="hi-IN">बोलिए, मैं सुन रहा हूँ।</Say>
           </Gather>
           <Redirect method="POST">${base}/api/public/twilio/voice${wantStream ? "?stream=1" : ""}</Redirect>
         `);
