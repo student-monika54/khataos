@@ -1,3 +1,5 @@
+import logoAsset from "@/assets/khataos-logo.png.asset.json";
+
 const cols = [
   { title: "Product", links: ["Overview", "Architecture", "Agents", "Demo", "Roadmap"] },
   { title: "Technology", links: ["WebLLM", "On-Device AI", "Cloud Agents", "Security", "Privacy"] },
