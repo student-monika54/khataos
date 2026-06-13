@@ -18,13 +18,6 @@ function twiml(xml: string) {
   });
 }
 
-function safeTwiml(base: string) {
-  return twiml(`
-    <Say voice="Polly.Raveena" language="en-IN">Sorry, KhataOS had trouble reading that option. Let us try again.</Say>
-    <Redirect method="POST">${base}/api/public/twilio/voice</Redirect>
-  `);
-}
-
 function escapeXml(s: string) {
   return s.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]!));
 }
@@ -42,7 +35,7 @@ function langMenuXml(base: string, cid: string): string {
             action="${base}/api/public/twilio/menu?cid=${encodeURIComponent(cid)}" method="POST">
       <Say voice="Polly.Raveena" language="en-IN">Please press 1 for English.</Say>
       <Say voice="Polly.Aditi" language="hi-IN">Hindi ke liye 2 dabaayein.</Say>
-      <Say voice="Polly.Aditi" language="hi-IN">Kannada ke liye 3 dabaayein.</Say>
+      <Say voice="Google.kn-IN-Standard-A" language="kn-IN">Kannada baashege moorane sankhye ottirisi.</Say>
     </Gather>
     <Redirect method="POST">${base}/api/public/twilio/voice</Redirect>
   `;
@@ -52,22 +45,21 @@ export const Route = createFileRoute("/api/public/twilio/menu")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const form = await request.formData();
         const url = new URL(request.url);
         const base = url.origin;
-        try {
-          const form = await request.formData();
-          const cid = url.searchParams.get("cid") ?? "";
-          const digits = String(form.get("Digits") ?? "").trim();
-          const code = digitToCode(digits);
+        const cid = url.searchParams.get("cid") ?? "";
+        const digits = String(form.get("Digits") ?? "").trim();
+        const code = digitToCode(digits);
 
-          if (!getCall(cid)) {
-            putCall({
-              id: cid, customerId: String(form.get("From") ?? "unknown"),
-              customerName: "Inbound caller", phone: String(form.get("From") ?? ""),
-              state: "listening", startedAt: Date.now(), transcript: [], source: "twilio",
-              cart: [], menuState: "menu",
-            });
-          }
+        if (!getCall(cid)) {
+          putCall({
+            id: cid, customerId: String(form.get("From") ?? "unknown"),
+            customerName: "Inbound caller", phone: String(form.get("From") ?? ""),
+            state: "listening", startedAt: Date.now(), transcript: [], source: "twilio",
+            cart: [], menuState: "menu",
+          });
+        }
 
         if (!isLangCode(code)) {
           return twiml(langMenuXml(base, cid));
@@ -92,18 +84,14 @@ export const Route = createFileRoute("/api/public/twilio/menu")({
           language, agent: "InsightsAgent",
         });
 
-          return twiml(`
-            <Gather input="dtmf" numDigits="1" timeout="8"
-                    action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}&amp;mode=menu"
-                    method="POST">
-              <Say voice="${v.voice}" language="${v.locale}">${escapeXml(m.mainMenu)}</Say>
-            </Gather>
-            <Redirect method="POST">${base}/api/public/twilio/menu?cid=${encodeURIComponent(cid)}</Redirect>
-          `);
-        } catch (error) {
-          console.error("Twilio menu webhook failed", error);
-          return safeTwiml(base);
-        }
+        return twiml(`
+          <Gather input="dtmf" numDigits="1" timeout="8"
+                  action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}&amp;mode=menu"
+                  method="POST">
+            <Say voice="${v.voice}" language="${v.locale}">${escapeXml(m.mainMenu)}</Say>
+          </Gather>
+          <Redirect method="POST">${base}/api/public/twilio/menu?cid=${encodeURIComponent(cid)}</Redirect>
+        `);
       },
     },
   },

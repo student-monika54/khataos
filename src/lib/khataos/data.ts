@@ -64,7 +64,7 @@ function seed(): KhataState {
   const me: Customer = {
     id: "c_me",
     name: "Ramesh Kumar",
-    phone: "+91 63646 37752",
+    phone: "+91 98765 43210",
     trustScore: 82,
     creditLimit: 5000,
     outstanding: 1850,
@@ -133,7 +133,6 @@ function seed(): KhataState {
 }
 
 let cache: KhataState | null = null;
-let serverSnapshot: KhataState | null = null;
 const listeners = new Set<() => void>();
 
 function read(): KhataState {
@@ -172,7 +171,7 @@ export function useKhata<T>(selector: (s: KhataState) => T): T {
       return () => listeners.delete(cb);
     },
     () => selector(read()),
-    () => selector(serverSnapshot ?? (serverSnapshot = seed())),
+    () => selector(seed()),
   );
 }
 

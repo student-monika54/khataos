@@ -7,14 +7,6 @@ function basicAuth(sid: string, token: string) {
   return "Basic " + btoa(`${sid}:${token}`);
 }
 
-function publicWebhookOrigin(request: Request) {
-  const origin = new URL(request.url).origin;
-  if (origin.includes("lovableproject.com") || origin.includes("id-preview--")) {
-    return "https://project--750fb6ad-0e44-4839-8ebb-8ee909060d69-dev.lovable.app";
-  }
-  return origin;
-}
-
 export const Route = createFileRoute("/api/khataos/outbound")({
   server: {
     handlers: {
@@ -30,7 +22,7 @@ export const Route = createFileRoute("/api/khataos/outbound")({
         if (!/^\+\d{8,15}$/.test(to)) {
           return Response.json({ error: "Provide 'to' in E.164 format, e.g. +9198…" }, { status: 400 });
         }
-        const origin = publicWebhookOrigin(request);
+        const origin = new URL(request.url).origin;
         const voiceUrl = `${origin}/api/public/twilio/voice${body.mediaStream ? "?stream=1" : ""}`;
         const statusUrl = `${origin}/api/public/twilio/status`;
 

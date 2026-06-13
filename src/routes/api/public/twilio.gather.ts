@@ -38,13 +38,6 @@ function twiml(xml: string) {
   });
 }
 
-function safeTwiml(base: string) {
-  return twiml(`
-    <Say voice="Polly.Raveena" language="en-IN">Sorry, KhataOS ran into a temporary voice-agent issue. Returning to the main menu.</Say>
-    <Redirect method="POST">${base}/api/public/twilio/voice</Redirect>
-  `);
-}
-
 // Resolve a customer profile from caller phone. Falls back to demo defaults.
 function resolveCustomer(phone: string) {
   // Single hardcoded demo customer — matches src/lib/khataos/data.ts seed.
@@ -102,10 +95,9 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const form = await request.formData();
         const url = new URL(request.url);
         const base = url.origin;
-        try {
-          const form = await request.formData();
         const cid = url.searchParams.get("cid") ?? "";
         const urlCode = url.searchParams.get("lang");
         const mode = (url.searchParams.get("mode") ?? "menu") as "menu" | "cart" | "credit" | "payment";
@@ -322,11 +314,7 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
         }
 
         // Default — back to menu
-          return twiml(mainMenuTwiml(base, cid, code));
-        } catch (error) {
-          console.error("Twilio gather webhook failed", error);
-          return safeTwiml(base);
-        }
+        return twiml(mainMenuTwiml(base, cid, code));
       },
     },
   },
