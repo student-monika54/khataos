@@ -44,7 +44,7 @@ export async function loadCommerceBrain(): Promise<any> {
 export function isBrainReady() { return !!engine; }
 
 const SYS = `You are the Commerce Brain on-device for KhataOS. Parse the customer's spoken text and respond ONLY with JSON of the shape:
-{"intent":"BALANCE_INQUIRY|KHATA_ORDER|CREDIT_REQUEST|REPAYMENT|SETTLEMENT|TRUST_INQUIRY|COLLECTIONS_FOLLOWUP|ESCALATE|GREETING|UNKNOWN","language":"Hindi|English|Hinglish|Kannada","items":[{"name":string,"quantity":string}],"amount":number|null}
+{"intent":"END_CALL|GREETING|BALANCE_INQUIRY|KHATA_ORDER|CREDIT_REQUEST|PAYMENT_CONFIRMATION|PAYMENT_PROMISE|REPAYMENT|SETTLEMENT|TRUST_INQUIRY|COLLECTIONS_FOLLOWUP|ESCALATE|GENERAL_HELP|UNKNOWN","language":"Hindi|English|Hinglish|Kannada","items":[{"name":string,"quantity":string}],"amount":number|null}
 No prose, no markdown. quantity like "2kg" "1L" "1pack".`;
 
 export async function runCommerceBrain(text: string): Promise<CommerceBrainOutput> {
@@ -63,16 +63,19 @@ export async function runCommerceBrain(text: string): Promise<CommerceBrainOutpu
     const m = raw.match(/\{[\s\S]*\}/);
     if (!m) return rules;
     const parsed = JSON.parse(m[0]);
+    const parsedIntent = typeof parsed.intent === "string" ? parsed.intent : undefined;
+    const parsedLanguage = typeof parsed.language === "string" ? parsed.language : undefined;
+    const intent = rules.intent !== "UNKNOWN" || rules.endCall ? rules.intent : (parsedIntent ?? rules.intent);
     return {
-      intent: parsed.intent ?? rules.intent,
-      language: parsed.language ?? rules.language,
+      intent,
+      language: parsedLanguage ?? rules.language,
       items: Array.isArray(parsed.items) ? parsed.items : rules.items,
       amount: parsed.amount ?? rules.amount,
       rawText: text,
       confidence: Math.max(rules.confidence, 0.95),
       languageConfidence: rules.languageConfidence,
-      intentConfidence: Math.max(rules.intentConfidence, parsed.intent ? 0.95 : 0),
-      endCall: parsed.intent === "END_CALL" || rules.endCall,
+      intentConfidence: Math.max(rules.intentConfidence, parsedIntent && intent === parsedIntent ? 0.95 : 0),
+      endCall: intent === "END_CALL" || rules.endCall,
     };
   } catch {
     return rules;
