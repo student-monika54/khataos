@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import logoAsset from "@/assets/khataos-logo.png.asset.json";
 
 const links = [
@@ -56,12 +57,12 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <a href="#cta" className="text-[13px] font-medium text-ink-muted hover:text-foreground">
+          <Link to="/app" className="text-[13px] font-medium text-ink-muted hover:text-foreground">
             Sign in
-          </a>
-          <a href="#demo" className="btn-primary hover:[transform:translateY(-1px)]">
-            Start Demo
-          </a>
+          </Link>
+          <Link to="/app" className="btn-primary hover:[transform:translateY(-1px)]">
+            Open App
+          </Link>
         </div>
 
         <button
@@ -92,13 +93,13 @@ export function Navbar() {
                   {l.label}
                 </a>
               ))}
-              <a
-                href="#demo"
+              <Link
+                to="/app"
                 onClick={() => setOpen(false)}
                 className="mt-2 btn-primary justify-center"
               >
-                Start Demo
-              </a>
+                Open App
+              </Link>
             </div>
           </motion.div>
         )}
