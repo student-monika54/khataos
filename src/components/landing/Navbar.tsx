@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import logoAsset from "@/assets/khataos-logo.png.asset.json";
 
 const links = [
   { href: "#problem", label: "Problem" },
