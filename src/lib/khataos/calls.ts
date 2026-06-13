@@ -57,6 +57,8 @@ export type TranscriptTurn = {
   deepgramError?: string;       // populated when Deepgram failed and we fell back
 };
 
+export type CartLine = { skuId: string; name: string; qty: number; unit: string; price: number };
+
 export type CallRecord = {
   id: string;
   twilioSid?: string;
@@ -77,6 +79,9 @@ export type CallRecord = {
   trustDelta?: number;
   recommendation?: string;
   source: "twilio" | "simulated";
+  // Guided voice-commerce state
+  menuState?: "menu" | "cart" | "credit" | "payment" | "status" | "ended";
+  cart?: CartLine[];
 };
 
 const KEY = "khataos:calls:v1";
