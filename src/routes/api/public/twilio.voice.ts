@@ -62,7 +62,7 @@ export const Route = createFileRoute("/api/public/twilio/voice")({
         const legacy = url.searchParams.get("legacy") === "1";
 
         putCall({
-          id, twilioSid: sid, customerId: from, customerName: "Inbound caller",
+          id, twilioSid: sid, customerId: "c_me", customerName: "Ramesh Kumar",
           phone: from, state: "listening", startedAt: Date.now(),
           transcript: [], source: "twilio",
         });
