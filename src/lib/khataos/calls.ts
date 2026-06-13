@@ -48,6 +48,13 @@ export type TranscriptTurn = {
   expectedSttLocale?: string;  // what we expected based on locked language
   speechConfidence?: number;   // Twilio `Confidence` field, 0-1
   transcriptLength?: number;   // characters in raw transcript
+  // Deepgram STT debug
+  sttProvider?: "deepgram" | "twilio";
+  deepgramModel?: string;       // e.g. nova-2 / whisper-medium
+  deepgramLanguage?: string;    // e.g. hi / en / kn
+  deepgramDetectedLanguage?: string;
+  deepgramLatencyMs?: number;
+  deepgramError?: string;       // populated when Deepgram failed and we fell back
 };
 
 export type CallRecord = {
