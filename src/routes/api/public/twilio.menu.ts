@@ -72,7 +72,6 @@ export const Route = createFileRoute("/api/public/twilio/menu")({
 
         const tplLang = codeToTemplateLang(code);
         const v = voiceForCode(code);
-        const stt = sttLocaleForCode(code);
         const greeting = renderTemplate("GREETING", {}, tplLang);
         const hint = changeLangHint(code);
 
