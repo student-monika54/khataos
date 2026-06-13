@@ -9,7 +9,7 @@ const links = [
   { href: "#architecture", label: "Architecture" },
   { href: "#agents", label: "Agents" },
   { href: "#demo", label: "Demo" },
-  { href: "#impact", label: "Impact" },
+  { href: "#install", label: "Install" },
 ];
 
 export function Navbar() {
