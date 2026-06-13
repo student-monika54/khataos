@@ -1,14 +1,14 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-  Home, Phone, CreditCard, Wallet, Shield,
-  LayoutDashboard, PhoneCall, Sparkles, Package, BookOpen,
+  Home, Phone, Wallet, Shield, Package,
+  LayoutDashboard, PhoneCall, Sparkles, BookOpen,
 } from "lucide-react";
 
 const customerNav = [
   { to: "/app/customer", label: "Home", icon: Home, exact: true },
   { to: "/app/customer/call", label: "Call", icon: Phone },
-  { to: "/app/customer/credit", label: "Credit", icon: CreditCard },
-  { to: "/app/customer/repayments", label: "Pay", icon: Wallet },
+  { to: "/app/customer/credit", label: "Credit & Pay", icon: Wallet },
+  { to: "/app/customer/orders", label: "Orders", icon: Package },
   { to: "/app/customer/trust", label: "Trust", icon: Shield },
 ];
 
