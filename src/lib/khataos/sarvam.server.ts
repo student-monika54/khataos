@@ -1,17 +1,17 @@
-// Sarvam AI speech layer — saaras:v2.5 STT-translate + bulbul:v1 TTS.
+// Sarvam AI speech layer — saaras:v3 STT-translate + bulbul:v3 TTS.
 //
 // STT: any of English / Hindi / Kannada / Hinglish / code-mixed audio is
 //      normalised to ENGLISH text + a detected language code. Downstream
 //      parser only deals with English.
 // TTS: response text is synthesised in the customer's detected language
-//      (en-IN | hi-IN | kn-IN) and played back via Twilio <Play>.
+//      (en-IN | hi-IN | kn-IN | ta-IN | te-IN) and played back via Twilio <Play>.
 //
 // If SARVAM_API_KEY is not configured, callers should fall back to the
 // existing DTMF menu flow (this module exports `isSarvamEnabled`).
 
 const SARVAM_BASE = "https://api.sarvam.ai";
 
-export type SarvamLangCode = "en-IN" | "hi-IN" | "kn-IN";
+export type SarvamLangCode = "en-IN" | "hi-IN" | "kn-IN" | "ta-IN" | "te-IN";
 
 export function isSarvamEnabled(): boolean {
   return !!process.env.SARVAM_API_KEY;
@@ -23,6 +23,8 @@ export function normalizeSarvamLang(code?: string): SarvamLangCode {
   const c = code.toLowerCase();
   if (c.startsWith("hi")) return "hi-IN";
   if (c.startsWith("kn")) return "kn-IN";
+  if (c.startsWith("ta")) return "ta-IN";
+  if (c.startsWith("te")) return "te-IN";
   return "en-IN";
 }
 
@@ -33,9 +35,9 @@ export type SarvamSttResult = {
   raw?: unknown;
 };
 
-// Speech → English. Uses saaras (speech-to-text-translate) which performs
-// language ID + translation in a single call, returning English text plus
-// the detected source language.
+// Speech → English. Uses saaras:v3 translate mode which performs language ID
+// + translation in a single low-latency REST call. Twilio <Record> supplies
+// VAD/endpointing; the audio turn is then translated here for the parser.
 export async function sarvamTranslateSpeech(
   audio: ArrayBuffer | Uint8Array,
   filename = "audio.mp3",
@@ -48,10 +50,11 @@ export async function sarvamTranslateSpeech(
   const form = new FormData();
   const blob = new Blob([audio as BlobPart], { type: contentType });
   form.append("file", blob, filename);
-  form.append("model", "saaras:v2.5");
-  form.append("prompt", "Indian retail kirana voice order. Items: atta, rice, oil, dal, sugar, salt, milk, biscuits, tea. Translate to English.");
+  form.append("model", "saaras:v3");
+  form.append("mode", "translate");
+  form.append("language_code", "unknown");
 
-  const res = await fetch(`${SARVAM_BASE}/speech-to-text-translate`, {
+  const res = await fetch(`${SARVAM_BASE}/speech-to-text`, {
     method: "POST",
     headers: { "api-subscription-key": key },
     body: form,
@@ -77,7 +80,7 @@ export type SarvamTtsResult = {
   latencyMs: number;
 };
 
-// English / Hindi / Kannada TTS. Returns WAV bytes.
+// English / Hindi / Kannada / Tamil / Telugu TTS. Returns WAV bytes.
 export async function sarvamTextToSpeech(
   text: string,
   language: SarvamLangCode,
@@ -86,11 +89,12 @@ export async function sarvamTextToSpeech(
   if (!key) throw new Error("SARVAM_API_KEY not configured");
 
   const t0 = Date.now();
-  // Sarvam TTS caps input around 500 chars per chunk — keep replies short.
-  const safe = text.length > 480 ? text.slice(0, 480) : text;
-  const speaker = language === "kn-IN" ? "pavithra"
-    : language === "hi-IN" ? "meera"
-    : "arvind";
+  const safe = text.length > 1200 ? text.slice(0, 1200) : text;
+  const speaker = language === "kn-IN" ? "kavitha"
+    : language === "hi-IN" ? "shreya"
+    : language === "ta-IN" ? "shruti"
+    : language === "te-IN" ? "manan"
+    : "shubh";
 
   const res = await fetch(`${SARVAM_BASE}/text-to-speech`, {
     method: "POST",
@@ -99,15 +103,14 @@ export async function sarvamTextToSpeech(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      inputs: [safe],
+      text: safe,
       target_language_code: language,
       speaker,
-      pitch: 0,
       pace: 1.0,
-      loudness: 1.2,
-      speech_sample_rate: 22050,
-      enable_preprocessing: true,
-      model: "bulbul:v1",
+      speech_sample_rate: 8000,
+      model: "bulbul:v3",
+      output_audio_codec: "wav",
+      temperature: 0.35,
     }),
   });
   const body = await res.text();
