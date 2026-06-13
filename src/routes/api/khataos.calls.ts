@@ -61,6 +61,7 @@ export const Route = createFileRoute("/api/khataos/calls")({
             commerce: result.commerce,
             financial: result.financial,
             templateId: result.templateId,
+            templateLang: result.templateLang,
             reply: result.reply,
             call: getCall(body.callId),
           });
