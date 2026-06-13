@@ -1,7 +1,7 @@
 // Server-side ephemeral call store (per-isolate). Bridges Twilio webhooks
 // to the live dashboard via a polling endpoint.
 
-import type { CallRecord, TranscriptTurn, CallState } from "./calls";
+import type { CallRecord, TranscriptTurn, CallState, CartLine } from "./calls";
 
 const g = globalThis as unknown as { __khataos_calls?: Map<string, CallRecord> };
 if (!g.__khataos_calls) g.__khataos_calls = new Map();
@@ -30,4 +30,14 @@ export function listCallsServer(): CallRecord[] {
 }
 export function getActiveCallServer() {
   return listCallsServer().find((c) => !["completed", "failed"].includes(c.state));
+}
+
+export function setCart(id: string, cart: CartLine[]) {
+  patchCall(id, { cart });
+}
+export function getCart(id: string): CartLine[] {
+  return store.get(id)?.cart ?? [];
+}
+export function setMenuState(id: string, menuState: CallRecord["menuState"]) {
+  patchCall(id, { menuState });
 }
