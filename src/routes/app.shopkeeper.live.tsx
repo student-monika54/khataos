@@ -67,12 +67,21 @@ function LiveView() {
           <StatCard label="Risk" value={(customer?.riskTag ?? "low").toUpperCase()} />
         </div>
 
+        <div className="rounded-2xl border border-emerald/40 bg-emerald/5 p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-emerald">Selected language · locked for call</div>
+            <span className="rounded-full bg-emerald px-2 py-0.5 text-[10px] font-bold text-[#06140b]">IVR</span>
+          </div>
+          <div className="mt-1 font-display text-xl font-semibold text-emerald">{call.language ?? "Pending menu selection…"}</div>
+          <p className="mt-1 text-[11px] text-ink-muted">Caller chose via DTMF (1=English, 2=Hindi, 3=Kannada). Press 9 on the phone to switch.</p>
+        </div>
+
         <div className="rounded-2xl border border-border bg-elevated/60 p-4">
-          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-subtle">Current intent · agent · language</div>
+          <div className="text-[10px] uppercase tracking-[0.14em] text-ink-subtle">Current intent · agent · template</div>
           <div className="mt-1.5 flex flex-wrap gap-2">
             <span className="rounded-full border border-emerald/40 bg-emerald/10 px-2.5 py-1 text-[11px] font-semibold text-emerald">{call.currentIntent ?? "—"}</span>
             <span className="rounded-full border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold">{call.currentAgent ? AGENT_META[call.currentAgent].label : "—"}</span>
-            <span className="rounded-full border border-border bg-surface px-2.5 py-1 text-[11px]">{call.language ?? "—"}</span>
+            <span className="rounded-full border border-border bg-surface px-2.5 py-1 text-[11px]">{lastAgentTurn?.templateId ?? "—"}</span>
           </div>
           {call.recommendation && (
             <p className="mt-2 text-[12.5px] leading-snug text-ink"><ShieldCheck className="mr-1 inline h-3.5 w-3.5 text-emerald" />{call.recommendation}</p>
