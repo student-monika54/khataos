@@ -7,7 +7,7 @@
   "background_color": "#0A0A0B",
   "theme_color": "#0A0A0B",
   "icons": [
-    { "src": "/__l5e/assets-v1/57a1a6b8-4a41-4cb0-9639-a3bb97cd06d8/khataos-logo.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/__l5e/assets-v1/57a1a6b8-4a41-4cb0-9639-a3bb97cd06d8/khataos-logo.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/__l5e/assets-v1/14247205-fbea-43e0-975d-bff2169d44c4/khataos-logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/__l5e/assets-v1/14247205-fbea-43e0-975d-bff2169d44c4/khataos-logo.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
