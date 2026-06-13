@@ -93,7 +93,7 @@ function read(): DemoState {
     const raw = localStorage.getItem(KEY);
     cache = raw ? { ...DEFAULT, ...JSON.parse(raw) } : DEFAULT;
   } catch { cache = DEFAULT; }
-  return cache;
+  return cache!;
 }
 
 function write(next: DemoState) {
