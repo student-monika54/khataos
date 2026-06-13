@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useKhata, formatINR } from "@/lib/khataos/data";
 import { AppHeader, AppScreen, StatCard, Section } from "@/components/app/AppShell";
 import { ArrowUpRight, Sparkles, TrendingUp, Radio, AlertTriangle, Clock, Lightbulb, Package } from "lucide-react";
+import { LiveOrdersPanel } from "@/components/app/LiveOrdersPanel";
 
 export const Route = createFileRoute("/app/shopkeeper/")({
   component: ShopHome,
@@ -169,6 +170,10 @@ function ShopHome() {
           </div>
         </Section>
       )}
+
+      <Section title="Live voice orders">
+        <LiveOrdersPanel compact />
+      </Section>
 
       <Section title="Today's orders">
         <ul className="overflow-hidden rounded-2xl border border-border bg-elevated/60 divide-y divide-border">

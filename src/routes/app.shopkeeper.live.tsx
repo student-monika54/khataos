@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppHeader, AppScreen, Section, StatCard } from "@/components/app/AppShell";
 import { CopilotDrawer } from "@/components/app/CopilotDrawer";
 import { AgentTimeline, stagesUpTo } from "@/components/app/AgentTimeline";
+import { LiveOrdersPanel } from "@/components/app/LiveOrdersPanel";
 import { useEffect, useState } from "react";
 import { AGENT_META, type CallRecord, type TranscriptTurn } from "@/lib/khataos/calls";
 import { useKhata, formatINR } from "@/lib/khataos/data";
@@ -25,7 +26,7 @@ function LiveView() {
       } catch {}
     }
     poll();
-    const id = setInterval(poll, 1500);
+    const id = setInterval(poll, 800);
     return () => { mounted = false; clearInterval(id); };
   }, []);
 
@@ -33,7 +34,7 @@ function LiveView() {
     return (
       <AppScreen>
         <AppHeader title="Live calls" subtitle="Realtime monitor" />
-        <div className="px-4 pt-6">
+        <div className="px-4 pt-6 space-y-4">
           <div className="rounded-2xl border border-dashed border-border bg-elevated/40 p-6 text-center">
             <Activity className="mx-auto h-6 w-6 text-emerald" />
             <h3 className="mt-3 font-display text-base font-semibold">No active calls</h3>
@@ -41,6 +42,10 @@ function LiveView() {
             <Link to="/app/customer/call" className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-emerald px-4 py-2 text-[12px] font-semibold text-[#06140b]">
               <Phone className="h-3.5 w-3.5" /> Trigger demo call
             </Link>
+          </div>
+          <div>
+            <div className="mb-2 text-[10px] uppercase tracking-[0.14em] text-ink-subtle">Live voice orders</div>
+            <LiveOrdersPanel />
           </div>
         </div>
       </AppScreen>
