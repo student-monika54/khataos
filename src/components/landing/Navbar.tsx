@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
-import logo from "@/assets/khataos-logo.png.asset.json";
 
 const links = [
   { href: "#problem", label: "Problem" },
-  { href: "#solution", label: "Solution" },
   { href: "#architecture", label: "Architecture" },
+  { href: "#agents", label: "Agents" },
   { href: "#demo", label: "Demo" },
   { href: "#impact", label: "Impact" },
 ];
@@ -30,9 +29,15 @@ export function Navbar() {
     >
       <div className="container-px mx-auto flex h-16 max-w-7xl items-center justify-between">
         <a href="#top" className="flex items-center gap-2.5">
-          <img src={logo.url} alt="KhataOS" className="h-8 w-8 rounded-md" />
-          <span className="font-display text-lg font-bold tracking-tight text-foreground">
+          <div className="relative grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald to-emerald/40">
+            <span className="font-display text-sm font-bold text-background">K</span>
+            <span className="absolute inset-0 rounded-lg ring-1 ring-inset ring-white/10" />
+          </div>
+          <span className="font-display text-[15px] font-semibold tracking-tight text-foreground">
             KhataOS
+          </span>
+          <span className="ml-2 hidden rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-ink-muted md:inline-block">
+            Beta
           </span>
         </a>
 
@@ -41,7 +46,7 @@ export function Navbar() {
             <a
               key={l.href}
               href={l.href}
-              className="text-sm font-medium text-ink-muted transition-colors hover:text-foreground"
+              className="text-[13px] font-medium text-ink-muted transition-colors hover:text-foreground"
             >
               {l.label}
             </a>
@@ -49,23 +54,17 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <a
-            href="#cta"
-            className="text-sm font-medium text-ink-muted hover:text-foreground"
-          >
+          <a href="#cta" className="text-[13px] font-medium text-ink-muted hover:text-foreground">
             Sign in
           </a>
-          <a
-            href="#cta"
-            className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:scale-[1.02]"
-          >
-            Request Demo
+          <a href="#demo" className="btn-primary hover:[transform:translateY(-1px)]">
+            Start Demo
           </a>
         </div>
 
         <button
           onClick={() => setOpen((v) => !v)}
-          className="grid h-9 w-9 place-items-center rounded-md border border-border bg-white md:hidden"
+          className="grid h-9 w-9 place-items-center rounded-md border border-border bg-surface md:hidden"
           aria-label="Menu"
         >
           {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -86,17 +85,17 @@ export function Navbar() {
                   key={l.href}
                   href={l.href}
                   onClick={() => setOpen(false)}
-                  className="rounded-md px-3 py-2.5 text-sm font-medium text-ink hover:bg-surface"
+                  className="rounded-md px-3 py-3 text-sm font-medium text-ink hover:bg-surface"
                 >
                   {l.label}
                 </a>
               ))}
               <a
-                href="#cta"
+                href="#demo"
                 onClick={() => setOpen(false)}
-                className="mt-2 rounded-full bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground"
+                className="mt-2 btn-primary justify-center"
               >
-                Request Demo
+                Start Demo
               </a>
             </div>
           </motion.div>

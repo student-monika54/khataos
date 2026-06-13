@@ -30,61 +30,83 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-surface: var(--surface);
+  --color-elevated: var(--elevated);
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
-  --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --color-ink-subtle: var(--ink-subtle);
+  --color-emerald: var(--emerald);
+  --color-emerald-glow: var(--emerald-glow);
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.875rem;
 
-  /* Brand */
-  --background: oklch(1 0 0);                          /* #FFFFFF */
-  --surface: oklch(0.984 0.003 247.86);                /* #F8FAFC */
-  --foreground: oklch(0.21 0.03 264);                  /* #0F172A */
-  --ink: oklch(0.39 0.03 256);                         /* #334155 text */
-  --ink-muted: oklch(0.55 0.025 256);
+  /* Matte black palette */
+  --background: oklch(0.145 0.005 260);                /* near-black #0A0A0B */
+  --surface: oklch(0.185 0.006 260);                   /* #131316 */
+  --elevated: oklch(0.215 0.007 260);                  /* #1A1A1F card */
+  --foreground: oklch(0.985 0 0);                      /* near-white */
+  --ink: oklch(0.92 0.005 250);                        /* primary text */
+  --ink-muted: oklch(0.66 0.01 250);                   /* secondary text */
+  --ink-subtle: oklch(0.48 0.01 250);                  /* tertiary text */
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.03 264);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.03 264);
+  --card: oklch(0.185 0.006 260);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.185 0.006 260);
+  --popover-foreground: oklch(0.985 0 0);
 
-  --primary: oklch(0.21 0.03 264);                     /* #0F172A */
-  --primary-foreground: oklch(0.984 0.003 247.86);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.145 0.005 260);
 
-  --secondary: oklch(0.97 0.005 247.86);
-  --secondary-foreground: oklch(0.21 0.03 264);
+  --secondary: oklch(0.235 0.007 260);
+  --secondary-foreground: oklch(0.985 0 0);
 
-  --muted: oklch(0.97 0.005 247.86);
-  --muted-foreground: oklch(0.55 0.025 256);
+  --muted: oklch(0.235 0.007 260);
+  --muted-foreground: oklch(0.66 0.01 250);
 
-  --accent: oklch(0.72 0.16 162);                      /* #10B981 */
-  --accent-foreground: oklch(0.21 0.03 264);
+  /* Emerald accent #22c55e */
+  --accent: oklch(0.74 0.18 152);
+  --accent-foreground: oklch(0.145 0.005 260);
+  --emerald: oklch(0.74 0.18 152);
+  --emerald-glow: oklch(0.82 0.2 152);
 
-  --destructive: oklch(0.62 0.22 27);
-  --destructive-foreground: oklch(0.984 0.003 247.86);
+  --destructive: oklch(0.65 0.22 27);
+  --destructive-foreground: oklch(0.985 0 0);
 
-  --border: oklch(0.92 0.01 256);                      /* #E2E8F0 */
-  --input: oklch(0.92 0.01 256);
-  --ring: oklch(0.72 0.16 162);
+  --border: oklch(0.28 0.008 260);                     /* hairline */
+  --input: oklch(0.28 0.008 260);
+  --ring: oklch(0.74 0.18 152);
 }
 
 @layer base {
   * { border-color: var(--color-border); }
-  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--color-background);
+    color-scheme: dark;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    font-feature-settings: "cv11", "ss01";
+    font-feature-settings: "ss01", "cv11";
+    background-image:
+      radial-gradient(1000px 600px at 80% -10%, color-mix(in oklab, var(--emerald) 10%, transparent), transparent 60%),
+      radial-gradient(700px 500px at 0% 10%, color-mix(in oklab, var(--emerald) 6%, transparent), transparent 60%);
+    background-attachment: fixed;
   }
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     color: var(--color-foreground);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
+    font-weight: 600;
   }
+  ::selection { background: color-mix(in oklab, var(--emerald) 35%, transparent); color: white; }
 }
 
 @utility container-px {
@@ -94,22 +116,38 @@
 }
 
 @utility glass-nav {
-  background-color: color-mix(in oklab, white 70%, transparent);
-  backdrop-filter: saturate(180%) blur(16px);
-  -webkit-backdrop-filter: saturate(180%) blur(16px);
-  border-bottom: 1px solid color-mix(in oklab, var(--color-border) 80%, transparent);
+  background-color: color-mix(in oklab, var(--background) 65%, transparent);
+  backdrop-filter: saturate(160%) blur(20px);
+  -webkit-backdrop-filter: saturate(160%) blur(20px);
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+}
+
+@utility glass-card {
+  background: color-mix(in oklab, var(--elevated) 80%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border) 90%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1rem;
 }
 
 @utility soft-card {
-  background: white;
+  background: linear-gradient(180deg,
+    color-mix(in oklab, var(--elevated) 100%, transparent) 0%,
+    color-mix(in oklab, var(--surface) 100%, transparent) 100%);
   border: 1px solid var(--color-border);
   border-radius: 1rem;
-  box-shadow: 0 1px 0 rgba(15,23,42,0.02), 0 8px 24px -16px rgba(15,23,42,0.08);
+  box-shadow:
+    0 1px 0 color-mix(in oklab, white 4%, transparent) inset,
+    0 30px 60px -30px rgba(0,0,0,0.6);
+}
+
+@utility hairline {
+  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
 }
 
 @utility section-y {
-  padding-block: 5rem;
-  @media (min-width: 768px) { padding-block: 7rem; }
+  padding-block: 6rem;
+  @media (min-width: 768px) { padding-block: 9rem; }
 }
 
 @utility eyebrow {
@@ -118,33 +156,124 @@
   gap: 0.5rem;
   padding: 0.375rem 0.75rem;
   border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  font-size: 0.8125rem;
-  color: var(--color-foreground);
+  border: 1px solid color-mix(in oklab, var(--emerald) 25%, var(--border));
+  background: color-mix(in oklab, var(--emerald) 8%, transparent);
+  font-size: 0.75rem;
+  color: color-mix(in oklab, var(--emerald-glow) 90%, white);
   font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 @utility gradient-text {
-  background: linear-gradient(135deg, #0F172A 0%, #10B981 100%);
+  background: linear-gradient(180deg, #ffffff 0%, color-mix(in oklab, white 60%, var(--emerald)) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
+@utility emerald-text {
+  color: var(--emerald-glow);
+}
+
+@utility grid-bg {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, white 4%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, white 4%, transparent) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+
+@utility btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent-foreground);
+  background: linear-gradient(180deg, var(--emerald-glow), var(--emerald));
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--emerald) 60%, black),
+    0 10px 30px -10px color-mix(in oklab, var(--emerald) 60%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 30%, transparent);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+@utility btn-primary-hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--emerald) 60%, black),
+    0 18px 40px -12px color-mix(in oklab, var(--emerald) 70%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 40%, transparent);
+}
+
+@utility btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  background: color-mix(in oklab, white 4%, transparent);
+  border: 1px solid var(--border);
+  transition: background 200ms ease, border-color 200ms ease;
+}
+
 @keyframes float-slow {
   0%, 100% { transform: translateY(0) }
-  50% { transform: translateY(-12px) }
+  50% { transform: translateY(-10px) }
 }
-@utility animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+@utility animate-float-slow { animation: float-slow 7s ease-in-out infinite; }
 
 @keyframes pulse-ring {
-  0% { transform: scale(0.9); opacity: 0.6 }
-  100% { transform: scale(1.6); opacity: 0 }
+  0% { transform: scale(0.9); opacity: 0.7 }
+  100% { transform: scale(2); opacity: 0 }
 }
-@utility animate-pulse-ring { animation: pulse-ring 2.4s ease-out infinite; }
+@utility animate-pulse-ring { animation: pulse-ring 3s ease-out infinite; }
 
 @keyframes dash {
-  to { stroke-dashoffset: -200; }
+  to { stroke-dashoffset: -300; }
 }
-@utility animate-dash { animation: dash 6s linear infinite; }
+@utility animate-dash { animation: dash 8s linear infinite; }
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+@utility animate-spin-slow { animation: spin-slow 40s linear infinite; }
+@utility animate-spin-reverse { animation: spin-slow 60s linear infinite reverse; }
+
+@keyframes ambient-glow {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.06); }
+}
+@utility animate-ambient { animation: ambient-glow 5s ease-in-out infinite; }
+
+@keyframes ticker {
+  0% { transform: translateY(0); }
+  20% { transform: translateY(-100%); }
+  40% { transform: translateY(-200%); }
+  60% { transform: translateY(-300%); }
+  80% { transform: translateY(-400%); }
+  100% { transform: translateY(-500%); }
+}
+@utility animate-ticker { animation: ticker 12s steps(1, end) infinite; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@utility text-shimmer {
+  background: linear-gradient(90deg,
+    color-mix(in oklab, white 90%, transparent) 0%,
+    var(--emerald-glow) 50%,
+    color-mix(in oklab, white 90%, transparent) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 4s linear infinite;
+}
