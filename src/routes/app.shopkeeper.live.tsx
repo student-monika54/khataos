@@ -113,6 +113,10 @@ function LiveView() {
         />
       </div>
 
+      <Section title="Live voice orders">
+        <LiveOrdersPanel />
+      </Section>
+
       <Section title="Pipeline debug · latest customer turn">
         <DebugCard turn={[...call.transcript].reverse().find((t) => t.role === "customer")} agentTurn={lastAgentTurn} />
       </Section>
