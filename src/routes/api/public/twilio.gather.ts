@@ -1,5 +1,12 @@
 // Twilio Gather webhook — runs the orchestration pipeline and replies
 // with TwiML. END_CALL intent issues a farewell and hangs up the call.
+//
+// CRITICAL: response language is selected PER TURN from the *current*
+// transcript (commerce.language), never locked to a conversation default.
+// The Twilio <Gather> language hint also adapts, but defaults to en-IN
+// because en-IN STT reliably captures both English and romanised
+// Hinglish — using hi-IN would force Devanagari transcription on
+// English speech and trap the agent in Hindi.
 import { createFileRoute } from "@tanstack/react-router";
 import { appendTurnServer, getCall, patchCall, putCall } from "@/lib/khataos/call-store.server";
 import { processTurn } from "@/lib/khataos/orchestrator.server";
@@ -14,13 +21,15 @@ function twiml(xml: string) {
   });
 }
 
-// Twilio <Say> voice + locale mapping. Polly.Aditi supports hi-IN; Kannada
-// has limited support so we fall back to Polly.Aditi with en-IN diction.
+// Twilio <Say> voice + locale mapping. Polly.Aditi (hi-IN) for Hindi,
+// Polly.Aditi (en-IN) for Hinglish/Kannada fallback, Polly.Raveena
+// (en-IN) for English.
 function voiceFor(lang: string): { voice: string; locale: string } {
   switch (lang) {
     case "Hindi":
-    case "Hinglish":
       return { voice: "Polly.Aditi", locale: "hi-IN" };
+    case "Hinglish":
+      return { voice: "Polly.Aditi", locale: "en-IN" };
     case "Kannada":
       return { voice: "Polly.Aditi", locale: "en-IN" };
     default:
@@ -28,12 +37,26 @@ function voiceFor(lang: string): { voice: string; locale: string } {
   }
 }
 
-// Twilio speech recognition language hint. en-IN handles English + most
-// Hinglish; we switch to hi-IN once the customer's first turn shows
-// Devanagari/Hindi cues so subsequent recognition is more accurate.
-function gatherLangHint(lang?: string): string {
-  if (lang === "Hindi" || lang === "Hinglish") return "hi-IN";
-  if (lang === "Kannada") return "kn-IN";
+// Localised continuation prompt ("anything else?").
+function continuationPrompt(lang: string): string {
+  switch (lang) {
+    case "Hindi": return "Aur kuch chahiye?";
+    case "Hinglish": return "Aur kuch chahiye?";
+    case "Kannada": return "Innenaadru beku?";
+    default: return "Anything else?";
+  }
+}
+
+// Smart STT hint:
+//  - en-IN by default (covers English + romanised Hinglish)
+//  - hi-IN only when the *last customer turn* contained Devanagari script
+//  - kn-IN only when the last customer turn contained Kannada script
+// We never lock to hi-IN after a single Hindi turn — the next turn could
+// be English again.
+function gatherLangHint(lastCustomerText?: string): string {
+  if (!lastCustomerText) return "en-IN";
+  if (/[\u0900-\u097F]/.test(lastCustomerText)) return "hi-IN";
+  if (/[\u0C80-\u0CFF]/.test(lastCustomerText)) return "kn-IN";
   return "en-IN";
 }
 
@@ -57,12 +80,10 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
           call = getCall(cid)!;
         }
 
-        const lastLang = call.language;
-
         if (!speech) {
-          const v = voiceFor(lastLang ?? "English");
+          const v = voiceFor("English");
           return twiml(`
-            <Gather input="speech" speechTimeout="auto" language="${gatherLangHint(lastLang)}"
+            <Gather input="speech" speechTimeout="auto" language="en-IN"
                     action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}" method="POST">
               <Say voice="${v.voice}" language="${v.locale}">Sorry, I didn't catch that. Could you repeat?</Say>
             </Gather>
@@ -82,6 +103,7 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
 
         result.turns.forEach((t) => appendTurnServer(cid, t));
 
+        // Per-turn voice — driven by THIS utterance's detected language.
         const v = voiceFor(result.commerce.language);
 
         // ====== END_CALL → graceful hangup ======
@@ -93,7 +115,6 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
             language: result.commerce.language,
             recommendation: "Customer ended the call.",
           });
-          // Mark completed shortly after the farewell so the dashboard reflects it.
           setTimeout(() => {
             const c = getCall(cid);
             if (!c) return;
@@ -121,14 +142,16 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
           recommendation: result.financial.reasoning,
         });
 
-        const nextLangHint = gatherLangHint(result.commerce.language);
+        // STT hint follows script of the latest customer utterance only.
+        const nextLangHint = gatherLangHint(speech);
+        const followUp = continuationPrompt(result.commerce.language);
 
         return twiml(`
           <Say voice="${v.voice}" language="${v.locale}">${escapeXml(result.reply)}</Say>
           <Gather input="speech" speechTimeout="auto" language="${nextLangHint}"
                   action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}" method="POST"
                   speechModel="experimental_conversations">
-            <Say voice="${v.voice}" language="${v.locale}">Aur kuch?</Say>
+            <Say voice="${v.voice}" language="${v.locale}">${escapeXml(followUp)}</Say>
           </Gather>
           <Hangup/>
         `);
