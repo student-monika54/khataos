@@ -200,20 +200,28 @@ function DebugCard({ turn, agentTurn }: { turn?: TranscriptTurn; agentTurn?: Tra
   const rawT = turn.rawTranscript ?? turn.text;
   const tLen = turn.transcriptLength ?? rawT.length;
   const sConf = turn.speechConfidence;
+  const provider = turn.sttProvider ?? "twilio";
+  const dgOnline = provider === "deepgram";
   const rows: [string, React.ReactNode][] = [
+    ["Speech Provider", dgOnline
+      ? <span className="rounded-md bg-emerald/15 px-2 py-0.5 text-emerald font-semibold">DEEPGRAM ✓ Connected</span>
+      : <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-amber-400 font-semibold">TWILIO (Deepgram offline)</span>],
+    ["Deepgram Model", <span className="text-ink">{turn.deepgramModel ?? "—"}</span>],
+    ["Deepgram Language", <span className="text-ink">{turn.deepgramLanguage ?? "—"}{turn.deepgramDetectedLanguage ? ` · detected ${turn.deepgramDetectedLanguage}` : ""}</span>],
+    ["Deepgram Latency", <span className="text-ink">{turn.deepgramLatencyMs != null ? `${turn.deepgramLatencyMs} ms` : "—"}</span>],
+    ...(turn.deepgramError ? [["Deepgram Error", <span className="text-amber-400">{turn.deepgramError}</span>] as [string, React.ReactNode]] : []),
     ["Selected Language", <span className="text-ink">{lang}</span>],
     ["Expected STT Locale", <span className="text-ink">{expectedStt}</span>],
-    ["Actual STT Locale", <span className={sttMatch ? "text-emerald" : "text-amber-400 font-semibold"}>{actualStt}{sttMatch ? " ✓" : " ✗ MISMATCH"}</span>],
+    ["Actual STT Locale", <span className={sttMatch ? "text-emerald" : "text-amber-400 font-semibold"}>{actualStt}{sttMatch ? " ✓" : ""}</span>],
     ["STT Model", <span className="text-ink">{sttModel}</span>],
-    ["Raw Transcript (Twilio)", rawT
+    ["Raw Transcript", rawT
       ? <span className="text-ink">"{rawT}"</span>
-      : <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-amber-400 font-semibold">EMPTY — STT returned nothing</span>],
+      : <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-amber-400 font-semibold">EMPTY</span>],
     ["Transcript Length", <span className={tLen === 0 ? "text-amber-400 font-semibold" : "text-ink"}>{tLen} chars</span>],
-    ["Speech Confidence", sConf != null
-      ? <span className={sConf < 0.5 ? "text-amber-400 font-semibold" : "text-ink"}>{Math.round(sConf * 100)}%{sConf < 0.5 ? " · LOW" : ""}</span>
-      : <span className="text-ink-subtle">— (not reported)</span>],
+    ["Transcript Confidence", sConf != null
+      ? <span className={sConf < 0.5 ? "text-amber-400 font-semibold" : "text-emerald"}>{Math.round(sConf * 100)}%{sConf < 0.5 ? " · LOW" : ""}</span>
+      : <span className="text-ink-subtle">—</span>],
     ["Voice Output", <span className="text-ink">{voiceLabel}</span>],
-    ["Language Confidence", <span className="text-ink">{turn.languageConfidence != null ? `${Math.round(turn.languageConfidence * 100)}%` : "—"}</span>],
     ["Detected Intent", noMatch
       ? <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-amber-400 font-semibold">NO_INTENT_MATCH</span>
       : <span className="text-emerald font-semibold">{turn.intent}</span>],

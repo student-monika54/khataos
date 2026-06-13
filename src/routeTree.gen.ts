@@ -33,6 +33,7 @@ import { Route as ApiKhataosHealthRouteImport } from './routes/api/khataos.healt
 import { Route as ApiKhataosCallsRouteImport } from './routes/api/khataos.calls'
 import { Route as ApiPublicTwilioVoiceRouteImport } from './routes/api/public/twilio.voice'
 import { Route as ApiPublicTwilioStatusRouteImport } from './routes/api/public/twilio.status'
+import { Route as ApiPublicTwilioRecordingRouteImport } from './routes/api/public/twilio.recording'
 import { Route as ApiPublicTwilioMenuRouteImport } from './routes/api/public/twilio.menu'
 import { Route as ApiPublicTwilioGatherRouteImport } from './routes/api/public/twilio.gather'
 import { Route as ApiKhataosOutboundCancelRouteImport } from './routes/api/khataos.outbound.cancel'
@@ -159,6 +160,12 @@ const ApiPublicTwilioStatusRoute = ApiPublicTwilioStatusRouteImport.update({
   path: '/api/public/twilio/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTwilioRecordingRoute =
+  ApiPublicTwilioRecordingRouteImport.update({
+    id: '/api/public/twilio/recording',
+    path: '/api/public/twilio/recording',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicTwilioMenuRoute = ApiPublicTwilioMenuRouteImport.update({
   id: '/api/public/twilio/menu',
   path: '/api/public/twilio/menu',
@@ -202,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
+  '/api/public/twilio/recording': typeof ApiPublicTwilioRecordingRoute
   '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
   '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
 }
@@ -230,6 +238,7 @@ export interface FileRoutesByTo {
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
+  '/api/public/twilio/recording': typeof ApiPublicTwilioRecordingRoute
   '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
   '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
 }
@@ -260,6 +269,7 @@ export interface FileRoutesById {
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
+  '/api/public/twilio/recording': typeof ApiPublicTwilioRecordingRoute
   '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
   '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
 }
@@ -291,6 +301,7 @@ export interface FileRouteTypes {
     | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/menu'
+    | '/api/public/twilio/recording'
     | '/api/public/twilio/status'
     | '/api/public/twilio/voice'
   fileRoutesByTo: FileRoutesByTo
@@ -319,6 +330,7 @@ export interface FileRouteTypes {
     | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/menu'
+    | '/api/public/twilio/recording'
     | '/api/public/twilio/status'
     | '/api/public/twilio/voice'
   id:
@@ -348,6 +360,7 @@ export interface FileRouteTypes {
     | '/api/khataos/outbound/cancel'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/menu'
+    | '/api/public/twilio/recording'
     | '/api/public/twilio/status'
     | '/api/public/twilio/voice'
   fileRoutesById: FileRoutesById
@@ -358,6 +371,7 @@ export interface RootRouteChildren {
   ApiKhataosRoute: typeof ApiKhataosRouteWithChildren
   ApiPublicTwilioGatherRoute: typeof ApiPublicTwilioGatherRoute
   ApiPublicTwilioMenuRoute: typeof ApiPublicTwilioMenuRoute
+  ApiPublicTwilioRecordingRoute: typeof ApiPublicTwilioRecordingRoute
   ApiPublicTwilioStatusRoute: typeof ApiPublicTwilioStatusRoute
   ApiPublicTwilioVoiceRoute: typeof ApiPublicTwilioVoiceRoute
 }
@@ -532,6 +546,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTwilioStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/twilio/recording': {
+      id: '/api/public/twilio/recording'
+      path: '/api/public/twilio/recording'
+      fullPath: '/api/public/twilio/recording'
+      preLoaderRoute: typeof ApiPublicTwilioRecordingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/twilio/menu': {
       id: '/api/public/twilio/menu'
       path: '/api/public/twilio/menu'
@@ -629,6 +650,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiKhataosRoute: ApiKhataosRouteWithChildren,
   ApiPublicTwilioGatherRoute: ApiPublicTwilioGatherRoute,
   ApiPublicTwilioMenuRoute: ApiPublicTwilioMenuRoute,
+  ApiPublicTwilioRecordingRoute: ApiPublicTwilioRecordingRoute,
   ApiPublicTwilioStatusRoute: ApiPublicTwilioStatusRoute,
   ApiPublicTwilioVoiceRoute: ApiPublicTwilioVoiceRoute,
 }
