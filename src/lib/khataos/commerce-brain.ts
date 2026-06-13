@@ -69,7 +69,9 @@ export async function runCommerceBrain(text: string): Promise<CommerceBrainOutpu
       items: Array.isArray(parsed.items) ? parsed.items : rules.items,
       amount: parsed.amount ?? rules.amount,
       rawText: text,
-      confidence: 0.95,
+      confidence: Math.max(rules.confidence, 0.95),
+      languageConfidence: rules.languageConfidence,
+      intentConfidence: Math.max(rules.intentConfidence, parsed.intent ? 0.95 : 0),
       endCall: parsed.intent === "END_CALL" || rules.endCall,
     };
   } catch {
