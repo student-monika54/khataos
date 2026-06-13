@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
   Home, Phone, CreditCard, Wallet, Shield,
-  LayoutDashboard, Radio, History, Sparkles, Settings,
+  LayoutDashboard, PhoneCall, Sparkles, Package, BookOpen,
 } from "lucide-react";
 
 const customerNav = [
@@ -14,10 +14,10 @@ const customerNav = [
 
 const shopNav = [
   { to: "/app/shopkeeper", label: "Home", icon: LayoutDashboard, exact: true },
-  { to: "/app/shopkeeper/live", label: "Live", icon: Radio },
-  { to: "/app/shopkeeper/calls", label: "Calls", icon: History },
-  { to: "/app/shopkeeper/insights", label: "AI", icon: Sparkles },
-  { to: "/app/shopkeeper/settings", label: "Settings", icon: Settings },
+  { to: "/app/shopkeeper/orders", label: "Orders", icon: Package },
+  { to: "/app/shopkeeper/live", label: "Calls", icon: PhoneCall },
+  { to: "/app/shopkeeper/ledger", label: "Ledger", icon: BookOpen },
+  { to: "/app/shopkeeper/insights", label: "Analysis", icon: Sparkles },
 ];
 
 export function BottomNav() {
