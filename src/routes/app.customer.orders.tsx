@@ -85,7 +85,7 @@ function CustomerOrders() {
   const allOrders = useKhata((s) => s.orders);
   const me = useMemo(() => customers.find((c) => c.id === meId), [customers, meId]);
   const ledgerOrders = useMemo(
-    () => (me ? (allOrders ?? []).filter((o) => o.customerId === me.id) : []),
+    () => (me ? allOrders.filter((o) => o.customerId === me.id) : []),
     [allOrders, me],
   );
 
