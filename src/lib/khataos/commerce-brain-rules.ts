@@ -113,13 +113,16 @@ const NUM_WORDS: Record<string, number> = {
   one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
 };
 
-function detectLanguage(t: string): DetectedLanguage {
-  if (TAMIL_RANGE.test(t)) return "Tamil";
-  if (TELUGU_RANGE.test(t)) return "Telugu";
-  if (KANNADA_RANGE.test(t)) return "Kannada";
-  if (HINDI_RANGE.test(t)) return "Hindi";
-  if (HINGLISH_HINTS.test(t)) return "Hinglish";
-  return "English";
+function detectLanguage(t: string): { language: DetectedLanguage; confidence: number } {
+  if (TAMIL_RANGE.test(t)) return { language: "Tamil", confidence: 0.98 };
+  if (TELUGU_RANGE.test(t)) return { language: "Telugu", confidence: 0.98 };
+  if (KANNADA_RANGE.test(t)) return { language: "Kannada", confidence: 0.98 };
+  if (HINDI_RANGE.test(t)) return { language: "Hindi", confidence: 0.98 };
+  const normalized = normalise(t);
+  const hinglishSignals = (normalized.match(HINGLISH_HINTS) ? 1 : 0)
+    + countMatches(normalized, [/\b(mera|mujhe|maine|aap|khata|udhaar|rupaye|chahiye|karo|karna|hai|kitna|bakaaya|bakaya)\b/i]);
+  if (hinglishSignals > 0) return { language: "Hinglish", confidence: hinglishSignals > 1 ? 0.91 : 0.82 };
+  return { language: "English", confidence: /\b(balance|credit|payment|paid|dues|outstanding|thank|bye)\b/i.test(normalized) ? 0.93 : 0.78 };
 }
 
 function extractAmount(t: string): number | undefined {
