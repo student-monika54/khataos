@@ -13,6 +13,11 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as ApiKhataosRouteImport } from './routes/api/khataos'
+import { Route as AppCustomerIndexRouteImport } from './routes/app.customer.index'
+import { Route as AppCustomerVoiceRouteImport } from './routes/app.customer.voice'
+import { Route as AppCustomerTrustRouteImport } from './routes/app.customer.trust'
+import { Route as AppCustomerRepaymentsRouteImport } from './routes/app.customer.repayments'
+import { Route as AppCustomerCreditRouteImport } from './routes/app.customer.credit'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -34,17 +39,52 @@ const ApiKhataosRoute = ApiKhataosRouteImport.update({
   path: '/api/khataos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppCustomerIndexRoute = AppCustomerIndexRouteImport.update({
+  id: '/customer/',
+  path: '/customer/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCustomerVoiceRoute = AppCustomerVoiceRouteImport.update({
+  id: '/customer/voice',
+  path: '/customer/voice',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCustomerTrustRoute = AppCustomerTrustRouteImport.update({
+  id: '/customer/trust',
+  path: '/customer/trust',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCustomerRepaymentsRoute = AppCustomerRepaymentsRouteImport.update({
+  id: '/customer/repayments',
+  path: '/customer/repayments',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCustomerCreditRoute = AppCustomerCreditRouteImport.update({
+  id: '/customer/credit',
+  path: '/customer/credit',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/api/khataos': typeof ApiKhataosRoute
   '/app/': typeof AppIndexRoute
+  '/app/customer/credit': typeof AppCustomerCreditRoute
+  '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
+  '/app/customer/trust': typeof AppCustomerTrustRoute
+  '/app/customer/voice': typeof AppCustomerVoiceRoute
+  '/app/customer/': typeof AppCustomerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/khataos': typeof ApiKhataosRoute
   '/app': typeof AppIndexRoute
+  '/app/customer/credit': typeof AppCustomerCreditRoute
+  '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
+  '/app/customer/trust': typeof AppCustomerTrustRoute
+  '/app/customer/voice': typeof AppCustomerVoiceRoute
+  '/app/customer': typeof AppCustomerIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -52,13 +92,45 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/api/khataos': typeof ApiKhataosRoute
   '/app/': typeof AppIndexRoute
+  '/app/customer/credit': typeof AppCustomerCreditRoute
+  '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
+  '/app/customer/trust': typeof AppCustomerTrustRoute
+  '/app/customer/voice': typeof AppCustomerVoiceRoute
+  '/app/customer/': typeof AppCustomerIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/api/khataos' | '/app/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/api/khataos'
+    | '/app/'
+    | '/app/customer/credit'
+    | '/app/customer/repayments'
+    | '/app/customer/trust'
+    | '/app/customer/voice'
+    | '/app/customer/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/khataos' | '/app'
-  id: '__root__' | '/' | '/app' | '/api/khataos' | '/app/'
+  to:
+    | '/'
+    | '/api/khataos'
+    | '/app'
+    | '/app/customer/credit'
+    | '/app/customer/repayments'
+    | '/app/customer/trust'
+    | '/app/customer/voice'
+    | '/app/customer'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/api/khataos'
+    | '/app/'
+    | '/app/customer/credit'
+    | '/app/customer/repayments'
+    | '/app/customer/trust'
+    | '/app/customer/voice'
+    | '/app/customer/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -97,15 +169,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiKhataosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/customer/': {
+      id: '/app/customer/'
+      path: '/customer'
+      fullPath: '/app/customer/'
+      preLoaderRoute: typeof AppCustomerIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/customer/voice': {
+      id: '/app/customer/voice'
+      path: '/customer/voice'
+      fullPath: '/app/customer/voice'
+      preLoaderRoute: typeof AppCustomerVoiceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/customer/trust': {
+      id: '/app/customer/trust'
+      path: '/customer/trust'
+      fullPath: '/app/customer/trust'
+      preLoaderRoute: typeof AppCustomerTrustRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/customer/repayments': {
+      id: '/app/customer/repayments'
+      path: '/customer/repayments'
+      fullPath: '/app/customer/repayments'
+      preLoaderRoute: typeof AppCustomerRepaymentsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/customer/credit': {
+      id: '/app/customer/credit'
+      path: '/customer/credit'
+      fullPath: '/app/customer/credit'
+      preLoaderRoute: typeof AppCustomerCreditRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
+  AppCustomerCreditRoute: typeof AppCustomerCreditRoute
+  AppCustomerRepaymentsRoute: typeof AppCustomerRepaymentsRoute
+  AppCustomerTrustRoute: typeof AppCustomerTrustRoute
+  AppCustomerVoiceRoute: typeof AppCustomerVoiceRoute
+  AppCustomerIndexRoute: typeof AppCustomerIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
+  AppCustomerCreditRoute: AppCustomerCreditRoute,
+  AppCustomerRepaymentsRoute: AppCustomerRepaymentsRoute,
+  AppCustomerTrustRoute: AppCustomerTrustRoute,
+  AppCustomerVoiceRoute: AppCustomerVoiceRoute,
+  AppCustomerIndexRoute: AppCustomerIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
