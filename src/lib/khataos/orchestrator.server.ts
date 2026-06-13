@@ -21,13 +21,11 @@ export async function processTurn(text: string, ctx: ConversationContext) {
   const t0 = Date.now();
   const commerce = runCommerceBrainRules(text);
 
-  const requestedAmount =
-    commerce.amount ??
-    commerce.items.reduce((sum, i) => {
-      const n = parseFloat(i.quantity);
-      if (Number.isFinite(n)) return sum + n * 60; // crude pricing
-      return sum + 60;
-    }, 0) || undefined;
+  const itemsTotal = commerce.items.reduce((sum, i) => {
+    const n = parseFloat(i.quantity);
+    return sum + (Number.isFinite(n) ? n * 60 : 60);
+  }, 0);
+  const requestedAmount = commerce.amount ?? (itemsTotal > 0 ? itemsTotal : undefined);
 
   const financial = await runFinancialBrain({
     intent: commerce.intent,

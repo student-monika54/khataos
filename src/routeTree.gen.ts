@@ -24,6 +24,10 @@ import { Route as AppCustomerVoiceRouteImport } from './routes/app.customer.voic
 import { Route as AppCustomerTrustRouteImport } from './routes/app.customer.trust'
 import { Route as AppCustomerRepaymentsRouteImport } from './routes/app.customer.repayments'
 import { Route as AppCustomerCreditRouteImport } from './routes/app.customer.credit'
+import { Route as ApiKhataosCallsRouteImport } from './routes/api/khataos.calls'
+import { Route as ApiPublicTwilioVoiceRouteImport } from './routes/api/public/twilio.voice'
+import { Route as ApiPublicTwilioStatusRouteImport } from './routes/api/public/twilio.status'
+import { Route as ApiPublicTwilioGatherRouteImport } from './routes/api/public/twilio.gather'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -102,12 +106,33 @@ const AppCustomerCreditRoute = AppCustomerCreditRouteImport.update({
   path: '/customer/credit',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiKhataosCallsRoute = ApiKhataosCallsRouteImport.update({
+  id: '/calls',
+  path: '/calls',
+  getParentRoute: () => ApiKhataosRoute,
+} as any)
+const ApiPublicTwilioVoiceRoute = ApiPublicTwilioVoiceRouteImport.update({
+  id: '/api/public/twilio/voice',
+  path: '/api/public/twilio/voice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTwilioStatusRoute = ApiPublicTwilioStatusRouteImport.update({
+  id: '/api/public/twilio/status',
+  path: '/api/public/twilio/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTwilioGatherRoute = ApiPublicTwilioGatherRouteImport.update({
+  id: '/api/public/twilio/gather',
+  path: '/api/public/twilio/gather',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
-  '/api/khataos': typeof ApiKhataosRoute
+  '/api/khataos': typeof ApiKhataosRouteWithChildren
   '/app/': typeof AppIndexRoute
+  '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
@@ -119,11 +144,15 @@ export interface FileRoutesByFullPath {
   '/app/shopkeeper/procurement': typeof AppShopkeeperProcurementRoute
   '/app/customer/': typeof AppCustomerIndexRoute
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
+  '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
+  '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
+  '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/api/khataos': typeof ApiKhataosRoute
+  '/api/khataos': typeof ApiKhataosRouteWithChildren
   '/app': typeof AppIndexRoute
+  '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
@@ -135,13 +164,17 @@ export interface FileRoutesByTo {
   '/app/shopkeeper/procurement': typeof AppShopkeeperProcurementRoute
   '/app/customer': typeof AppCustomerIndexRoute
   '/app/shopkeeper': typeof AppShopkeeperIndexRoute
+  '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
+  '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
+  '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
-  '/api/khataos': typeof ApiKhataosRoute
+  '/api/khataos': typeof ApiKhataosRouteWithChildren
   '/app/': typeof AppIndexRoute
+  '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
@@ -153,6 +186,9 @@ export interface FileRoutesById {
   '/app/shopkeeper/procurement': typeof AppShopkeeperProcurementRoute
   '/app/customer/': typeof AppCustomerIndexRoute
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
+  '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
+  '/api/public/twilio/status': typeof ApiPublicTwilioStatusRoute
+  '/api/public/twilio/voice': typeof ApiPublicTwilioVoiceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +197,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/api/khataos'
     | '/app/'
+    | '/api/khataos/calls'
     | '/app/customer/credit'
     | '/app/customer/repayments'
     | '/app/customer/trust'
@@ -172,11 +209,15 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/procurement'
     | '/app/customer/'
     | '/app/shopkeeper/'
+    | '/api/public/twilio/gather'
+    | '/api/public/twilio/status'
+    | '/api/public/twilio/voice'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/api/khataos'
     | '/app'
+    | '/api/khataos/calls'
     | '/app/customer/credit'
     | '/app/customer/repayments'
     | '/app/customer/trust'
@@ -188,12 +229,16 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/procurement'
     | '/app/customer'
     | '/app/shopkeeper'
+    | '/api/public/twilio/gather'
+    | '/api/public/twilio/status'
+    | '/api/public/twilio/voice'
   id:
     | '__root__'
     | '/'
     | '/app'
     | '/api/khataos'
     | '/app/'
+    | '/api/khataos/calls'
     | '/app/customer/credit'
     | '/app/customer/repayments'
     | '/app/customer/trust'
@@ -205,12 +250,18 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/procurement'
     | '/app/customer/'
     | '/app/shopkeeper/'
+    | '/api/public/twilio/gather'
+    | '/api/public/twilio/status'
+    | '/api/public/twilio/voice'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
-  ApiKhataosRoute: typeof ApiKhataosRoute
+  ApiKhataosRoute: typeof ApiKhataosRouteWithChildren
+  ApiPublicTwilioGatherRoute: typeof ApiPublicTwilioGatherRoute
+  ApiPublicTwilioStatusRoute: typeof ApiPublicTwilioStatusRoute
+  ApiPublicTwilioVoiceRoute: typeof ApiPublicTwilioVoiceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -320,6 +371,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomerCreditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/khataos/calls': {
+      id: '/api/khataos/calls'
+      path: '/calls'
+      fullPath: '/api/khataos/calls'
+      preLoaderRoute: typeof ApiKhataosCallsRouteImport
+      parentRoute: typeof ApiKhataosRoute
+    }
+    '/api/public/twilio/voice': {
+      id: '/api/public/twilio/voice'
+      path: '/api/public/twilio/voice'
+      fullPath: '/api/public/twilio/voice'
+      preLoaderRoute: typeof ApiPublicTwilioVoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/twilio/status': {
+      id: '/api/public/twilio/status'
+      path: '/api/public/twilio/status'
+      fullPath: '/api/public/twilio/status'
+      preLoaderRoute: typeof ApiPublicTwilioStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/twilio/gather': {
+      id: '/api/public/twilio/gather'
+      path: '/api/public/twilio/gather'
+      fullPath: '/api/public/twilio/gather'
+      preLoaderRoute: typeof ApiPublicTwilioGatherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -355,10 +434,25 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ApiKhataosRouteChildren {
+  ApiKhataosCallsRoute: typeof ApiKhataosCallsRoute
+}
+
+const ApiKhataosRouteChildren: ApiKhataosRouteChildren = {
+  ApiKhataosCallsRoute: ApiKhataosCallsRoute,
+}
+
+const ApiKhataosRouteWithChildren = ApiKhataosRoute._addFileChildren(
+  ApiKhataosRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
-  ApiKhataosRoute: ApiKhataosRoute,
+  ApiKhataosRoute: ApiKhataosRouteWithChildren,
+  ApiPublicTwilioGatherRoute: ApiPublicTwilioGatherRoute,
+  ApiPublicTwilioStatusRoute: ApiPublicTwilioStatusRoute,
+  ApiPublicTwilioVoiceRoute: ApiPublicTwilioVoiceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
