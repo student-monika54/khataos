@@ -46,7 +46,7 @@ const en: Bag = {
   GENERAL_HELP: () => `I can help with your balance, credit requests, orders, or payments. What would you like?`,
   END_CALL: (v) => `Thank you ${v.customerName ?? ""}. Have a great day. Goodbye.`,
   ESCALATION: () => `Connecting you to the shopkeeper now.`,
-  FALLBACK: () => `I didn't catch that. Could you repeat?`,
+  FALLBACK: () => `I didn't understand that. Could you tell me whether you want to check your balance, request credit, or make a payment?`,
 };
 
 const hi: Bag = {
@@ -65,7 +65,7 @@ const hi: Bag = {
   GENERAL_HELP: () => `मैं बकाया, उधार, ऑर्डर या भुगतान में मदद कर सकता हूँ। क्या चाहिए?`,
   END_CALL: (v) => `धन्यवाद ${v.customerName ?? ""}। आपका दिन शुभ हो। अलविदा।`,
   ESCALATION: () => `आपको दुकानदार से जोड़ रहा हूँ।`,
-  FALLBACK: () => `समझ नहीं पाया, एक बार फिर बोलिए।`,
+  FALLBACK: () => `मुझे पूरी तरह समझ नहीं आया। क्या आप balance check करना चाहते हैं, credit लेना चाहते हैं, या payment के बारे में बात कर रहे हैं?`,
 };
 
 const hinglish: Bag = {
@@ -84,7 +84,7 @@ const hinglish: Bag = {
   GENERAL_HELP: () => `Main balance, udhaar, order ya payment mein madad kar sakta hu. Kya chahiye?`,
   END_CALL: (v) => `Dhanyavaad ${v.customerName ?? ""}. Aapka din shubh ho. Alvida.`,
   ESCALATION: () => `Aapko shopkeeper se connect kar raha hu.`,
-  FALLBACK: () => `Samajh nahi paaya, ek baar phir boliye?`,
+  FALLBACK: () => `Thoda clear bataiye. Balance check karna hai, credit chahiye, ya payment related help?`,
 };
 
 const kn: Bag = {
@@ -103,7 +103,7 @@ const kn: Bag = {
   GENERAL_HELP: () => `ಬಾಕಿ, ಸಾಲ, ಆರ್ಡರ್ ಅಥವಾ ಪಾವತಿಯಲ್ಲಿ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ. ಏನು ಬೇಕು?`,
   END_CALL: (v) => `ಧನ್ಯವಾದ ${v.customerName ?? ""}. ಶುಭ ದಿನ. ಬಾಯ್.`,
   ESCALATION: () => `ನಾನು ನಿಮ್ಮನ್ನು ಅಂಗಡಿಯವರಿಗೆ ಸಂಪರ್ಕಿಸುತ್ತಿದ್ದೇನೆ.`,
-  FALLBACK: () => `ಅರ್ಥವಾಗಲಿಲ್ಲ, ದಯವಿಟ್ಟು ಮತ್ತೊಮ್ಮೆ ಹೇಳಿ.`,
+  FALLBACK: () => `ನನಗೆ ಸ್ಪಷ್ಟವಾಗಿ ಅರ್ಥವಾಗಲಿಲ್ಲ. ಬ್ಯಾಲೆನ್ಸ್ ನೋಡಬೇಕೇ, ಕ್ರೆಡಿಟ್ ಬೇಕೇ, ಅಥವಾ ಪಾವತಿ ಬಗ್ಗೆ ಸಹಾಯ ಬೇಕೇ?`,
 };
 
 const T: Record<TemplateLang, Bag> = { en, hi, hinglish, kn };

@@ -30,6 +30,8 @@ export type TranscriptTurn = {
   templateId?: string;
   language?: string;
   confidence?: number;
+  languageConfidence?: number;
+  intentConfidence?: number;
   templateLang?: string;
   items?: { name: string; quantity: string }[];
   decision?: "approve" | "reject" | "conditional";

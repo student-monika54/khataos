@@ -104,12 +104,14 @@ function LiveView() {
           <div className="mb-2 text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
             Per-turn detection · routing · agent
           </div>
-          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-2 gap-y-1 font-mono">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto_auto_auto_auto] gap-x-2 gap-y-1 font-mono">
             <div className="text-ink-subtle">Transcript</div>
             <div className="text-ink-subtle text-right">Lang</div>
-            <div className="text-ink-subtle text-right">Conf</div>
-            <div className="text-ink-subtle text-right">Tpl</div>
             <div className="text-ink-subtle text-right">Intent</div>
+            <div className="text-ink-subtle text-right">Lang conf</div>
+            <div className="text-ink-subtle text-right">Intent conf</div>
+            <div className="text-ink-subtle text-right">Agent</div>
+            <div className="text-ink-subtle text-right">Template</div>
             {call.transcript.slice(-6).map((t, i) => (
               <FragmentRow key={i} t={t} />
             ))}
@@ -147,9 +149,11 @@ function FragmentRow({ t }: { t: import("@/lib/khataos/calls").TranscriptTurn })
         <span className="mr-1 opacity-60">{isCust ? "U›" : "A›"}</span>{t.text}
       </div>
       <div className="text-right text-ink-muted">{t.language ?? "—"}</div>
-      <div className="text-right text-ink-muted">{t.confidence ? t.confidence.toFixed(2) : "—"}</div>
-      <div className="text-right text-ink-muted">{t.templateLang ?? "—"}</div>
       <div className="text-right text-ink-muted">{t.intent ?? "—"}</div>
+      <div className="text-right text-ink-muted">{t.languageConfidence ? t.languageConfidence.toFixed(2) : "—"}</div>
+      <div className="text-right text-ink-muted">{t.intentConfidence ? t.intentConfidence.toFixed(2) : "—"}</div>
+      <div className="text-right text-ink-muted">{t.agent ?? "—"}</div>
+      <div className="text-right text-ink-muted">{t.templateId ? `${t.templateId}${t.templateLang ? `:${t.templateLang}` : ""}` : "—"}</div>
     </>
   );
 }

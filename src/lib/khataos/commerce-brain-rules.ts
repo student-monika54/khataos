@@ -14,6 +14,8 @@ export type CommerceBrainOutput = {
   amount?: number;
   rawText: string;
   confidence: number;
+  languageConfidence: number;
+  intentConfidence: number;
   endCall: boolean;
 };
 
@@ -21,6 +23,19 @@ const HINDI_RANGE = /[\u0900-\u097F]/;
 const KANNADA_RANGE = /[\u0C80-\u0CFF]/;
 const TAMIL_RANGE = /[\u0B80-\u0BFF]/;
 const TELUGU_RANGE = /[\u0C00-\u0C7F]/;
+
+const normalise = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[^\p{L}\p{N}\s₹]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const hasAny = (text: string, patterns: RegExp[]) => patterns.some((re) => re.test(text));
+
+const countMatches = (text: string, patterns: RegExp[]) =>
+  patterns.reduce((sum, re) => sum + (re.test(text) ? 1 : 0), 0);
 
 // Strong Hinglish romanised markers — if any of these appear without
 // Devanagari we treat the utterance as Hinglish, not English.
@@ -42,6 +57,8 @@ const HINGLISH_HINTS = new RegExp(
   "i",
 );
 
+const KANNADA_ROMAN_HINTS = /\b(nanna|nanage|nanu|eshtu|beku|beka|saala|sala|udara|hana|rupayi|roopayi|kattide|madide|maadide|dhanyavada|namaskara|innenu|baki)\b/i;
+
 // ============ END_CALL DETECTION (HIGHEST PRIORITY) ============
 const END_CALL_PATTERNS: RegExp[] = [
   // English
@@ -56,6 +73,7 @@ const END_CALL_PATTERNS: RegExp[] = [
   /(अलविदा|धन्यवाद|शुक्रिया|फोन\s*रखो|फोन\s*रखिये|कॉल\s*बंद|बस\s*हो\s*गया|बस\s*इतना|बस\s*इतनी|कुछ\s*नहीं\s*चाहिए|काम\s*हो\s*गया|बाय|गुडबाय)/,
   // Kannada
   /(ಧನ್ಯವಾದ|ಧನ್ಯವಾದಗಳು|ವಂದನೆ|ಬಾಯ್|ಮುಗಿಯಿತು|ಸಾಕು)/,
+  /\b(dhanyavada|dhanyavadagalu|bye|saaku|mugiyitu|call\s+cut\s+maadi|phone\s+idi)\b/i,
 ];
 
 function isEndCall(text: string): boolean {
@@ -79,6 +97,65 @@ function isEndCall(text: string): boolean {
 const PAYMENT_CONFIRM = /\b(paid|paid\s?already|done\s?payment|payment\s?done|payment\s?ho\s?gaya|paisa\s?bhej\s?diya|paise\s?bhej\s?diye|bhej\s?diya|transfer\s?kar\s?diya|upi\s?kar\s?diya|gpay\s?kar\s?diya|phonepe\s?kar\s?diya|paytm\s?kar\s?diya|kar\s?diya\s?payment|de\s?diya\s?paisa)\b|(भुगतान\s*कर\s*दिया|पैसे\s*भेज\s*दिए|भेज\s*दिया)/i;
 const PAYMENT_PROMISE = /\b(kal\s?karunga|kal\s?karungi|kal\s?tak|agle\s?hafte|next\s?week|tomorrow|day\s?after|paal\s?baad|baad\s?mein\s?karunga|thodi\s?der\s?mein|will\s?pay|pay\s?karunga|pay\s?karungi|chukaunga|chukaungi|de\s?dunga|de\s?dungi)\b|(कल\s*दूंगा|कल\s*दूंगी|अगले\s*हफ्ते|कल\s*तक)/i;
 
+const INTENT_PATTERNS: Partial<Record<Intent, RegExp[]>> = {
+  BALANCE_INQUIRY: [
+    /\b(balance|outstanding|dues?|due\s+amount|amount\s+due|owe|owed|how\s+much|what\s+is\s+my\s+(balance|outstanding)|check\s+my\s+balance)\b/i,
+    /\b(mera|meri|my)?\s*(khata|khaata|account|balance|bakaaya|bakaya|baki)\s*(kitna|check|dikhao|batao|hai)?\b/i,
+    /(मेरा\s*)?(बैलेंस|बकाया|खाता|बाकी).*(कितना|बताइए|बताओ|चेक)|(कितना\s*(बकाया|बाकी))/i,
+    /(ಬಾಕಿ|ಬ್ಯಾಲೆನ್ಸ್|ಖಾತೆ|ಎಷ್ಟು|ಎಷ್ಟಿದೆ|balance|outstanding)/i,
+    /\b(nanna|nanage)?\s*(balance|baki|baaki|khate|account).{0,20}\b(eshtu|check|heli|tilisi|ide)\b/i,
+  ],
+  CREDIT_REQUEST: [
+    /\b(can\s+i\s+get|need|want|request|give\s+me|can\s+you\s+give).{0,40}\b(credit|loan|more\s+credit|rupees?|rs|₹)\b/i,
+    /\b(credit|loan|udhaar|udhar|khate\s+mein|khata\s+mein).{0,30}\b(chahiye|chaiye|need|want|de\s?do|dijiye|more|aur)\b/i,
+    /\b(mujhe|mereko).{0,35}\b(credit|udhaar|rupaye|rupees?|paisa|paise).{0,35}\b(chahiye|de\s?do|dijiye|aur)\b/i,
+    /(उधार|क्रेडिट|लोन|रुपये).*(चाहिए|दीजिए|दे दो|मिलेगा|और)|(मुझे).*(उधार|क्रेडिट)/i,
+    /(ಸಾಲ|ಕ್ರೆಡಿಟ್|ಉಧಾರ|ರೂಪಾಯಿ|ಹಣ).*(ಬೇಕು|ಕೊಡಿ|ಸಿಗುತ್ತದೆಯೇ|ಹೆಚ್ಚು)|(ನನಗೆ).*(ಸಾಲ|ಕ್ರೆಡಿಟ್|ಹಣ)/i,
+    /\b(nanage|nanna|nanu).{0,30}\b(credit|saala|sala|loan|hana|rupayi|roopayi).{0,30}\b(beku|beka|kodi|sigutta|more|heccu)\b/i,
+  ],
+  PAYMENT_CONFIRMATION: [
+    PAYMENT_CONFIRM,
+    /\b(i\s+paid|paid\s+my\s+dues?|dues?\s+paid|payment\s+(is\s+)?done|i\s+have\s+paid|already\s+paid|sent\s+the\s+money|transferred)\b/i,
+    /\b(payment|paisa|paise|amount|dues?)\s*(kar\s*diya|ho\s*gaya|bhej\s*diya|de\s*diya|paid|done)\b/i,
+    /(मैंने|मैने).*(भुगतान|पेमेंट|पैसे).*(कर\s*दिया|भेज\s*दिए|दे\s*दिए)|(भुगतान|पेमेंट).*(हो\s*गया|कर\s*दिया)/i,
+    /(ಪಾವತಿ|ಹಣ).*(ಮಾಡಿದೆ|ಕಟ್ಟಿದೆ|ಕೊಟ್ಟಿದ್ದೇನೆ|ಕಳುಹಿಸಿದೆ)|(ನಾನು).*(ಪಾವತಿ|ಹಣ).*(ಮಾಡಿದೆ|ಕಟ್ಟಿದೆ)/i,
+    /\b(payment|hana|dues?|amount).{0,30}\b(madide|maadide|kattide|kottide|kaluhiside|done|paid)\b/i,
+  ],
+  REPAYMENT: [
+    /\b(pay\s+now|repay|make\s+a\s+payment|settle\s+now|clear\s+dues?)\b/i,
+    /\b(abhi|aaj).{0,20}\b(pay|payment|chuka|de\s*dunga|settle)\b/i,
+    /(अभी|आज).*(भुगतान|पेमेंट|चुका|देना)/i,
+    /(ಈಗ|ಇಂದು).*(ಪಾವತಿ|ಕಟ್ಟುತ್ತೇನೆ|ಕೊಡುತ್ತೇನೆ)/i,
+  ],
+  SETTLEMENT: [
+    PAYMENT_PROMISE,
+    /\b(settlement|installment|instalment|pay\s+later|next\s+week|tomorrow|promise\s+to\s+pay|will\s+pay)\b/i,
+    /\b(kal|agle\s+hafte|baad\s+mein|kist|kishti|thodi\s+der).{0,30}\b(pay|payment|chuka|dunga|dungi|karunga|karungi)\b/i,
+    /(कल|अगले\s*हफ्ते|किस्त|बाद\s*में).*(भुगतान|पेमेंट|दूंगा|दूंगी|करूँगा|करूंगा)/i,
+    /(ನಾಳೆ|ಮುಂದಿನ\s*ವಾರ|ಕಂತು|ನಂತರ).*(ಪಾವತಿ|ಕಟ್ಟುತ್ತೇನೆ|ಕೊಡುತ್ತೇನೆ)/i,
+  ],
+  TRUST_INQUIRY: [
+    /\b(trust|score|rating|credit\s+score|bharosa)\b/i,
+    /(भरोसा|ट्रस्ट|स्कोर|रेटिंग)/i,
+    /(ನಂಬಿಕೆ|ಸ್ಕೋರ್|ರೇಟಿಂಗ್|trust)/i,
+  ],
+  COLLECTIONS_FOLLOWUP: [
+    /\b(reminder|overdue|late\s+payment|due\s+since|collection)\b/i,
+    /(याद\s*दिलाना|ओवरड्यू|बकाया\s*देरी|देर\s*से)/i,
+    /(ನೆನಪು|ಬಾಕಿ|ತಡ|overdue)/i,
+  ],
+  ESCALATE: [
+    /\b(speak\s+to|connect\s+to|shopkeeper|owner|human|agent|dukaan|dukan)\b/i,
+    /(दुकानदार|मालिक|इंसान|बात\s*करनी)/i,
+    /(ಅಂಗಡಿಯವರು|ಮಾಲೀಕ|ಮಾನವ|ಮಾತನಾಡಬೇಕು)/i,
+  ],
+  GENERAL_HELP: [
+    /\b(help|support|what\s+can\s+you\s+do|madad|sahayata)\b/i,
+    /(मदद|सहायता)/i,
+    /(ಸಹಾಯ|help)/i,
+  ],
+};
+
 // ============ ITEMS / AMOUNT ============
 const ITEM_DICT: Record<string, string> = {
   atta: "Atta", aata: "Atta", flour: "Atta",
@@ -98,13 +175,17 @@ const NUM_WORDS: Record<string, number> = {
   one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
 };
 
-function detectLanguage(t: string): DetectedLanguage {
-  if (TAMIL_RANGE.test(t)) return "Tamil";
-  if (TELUGU_RANGE.test(t)) return "Telugu";
-  if (KANNADA_RANGE.test(t)) return "Kannada";
-  if (HINDI_RANGE.test(t)) return "Hindi";
-  if (HINGLISH_HINTS.test(t)) return "Hinglish";
-  return "English";
+function detectLanguage(t: string): { language: DetectedLanguage; confidence: number } {
+  if (TAMIL_RANGE.test(t)) return { language: "Tamil", confidence: 0.98 };
+  if (TELUGU_RANGE.test(t)) return { language: "Telugu", confidence: 0.98 };
+  if (KANNADA_RANGE.test(t)) return { language: "Kannada", confidence: 0.98 };
+  if (HINDI_RANGE.test(t)) return { language: "Hindi", confidence: 0.98 };
+  const normalized = normalise(t);
+  if (KANNADA_ROMAN_HINTS.test(normalized)) return { language: "Kannada", confidence: 0.86 };
+  const hinglishSignals = (normalized.match(HINGLISH_HINTS) ? 1 : 0)
+    + countMatches(normalized, [/\b(mera|mujhe|maine|aap|khata|udhaar|rupaye|chahiye|karo|karna|hai|kitna|bakaaya|bakaya)\b/i]);
+  if (hinglishSignals > 0) return { language: "Hinglish", confidence: hinglishSignals > 1 ? 0.91 : 0.82 };
+  return { language: "English", confidence: /\b(balance|credit|payment|paid|dues|outstanding|thank|bye)\b/i.test(normalized) ? 0.93 : 0.78 };
 }
 
 function extractAmount(t: string): number | undefined {
@@ -130,29 +211,42 @@ function extractItems(t: string): { name: string; quantity: string }[] {
   return out;
 }
 
-function detectIntent(t: string, items: number, amount?: number): Intent {
-  const lower = t.toLowerCase();
-  if (PAYMENT_CONFIRM.test(t)) return "PAYMENT_CONFIRMATION";
-  if (PAYMENT_PROMISE.test(t)) return "PAYMENT_PROMISE";
-  if (/^(hi|hello|namaste|namaskar|salaam|hey|haanji|haan\s?ji|बोलिए|नमस्ते)\b/i.test(lower) && t.length < 40) return "GREETING";
-  if (/(balance|bakaaya|bakaya|baki|kitna\s?bacha|kitne\s?ka|how\s?much|outstanding|owe|mera\s?khata|खाता|बकाया)/i.test(t)) return "BALANCE_INQUIRY";
-  if (/(trust|score|rating|bharosa|भरोसा)/i.test(t)) return "TRUST_INQUIRY";
-  if (/(pay\b|paid|repay|chukana|chuka|chuk|settle\s?now|payment|भुगतान)/i.test(t)) return "REPAYMENT";
-  if (/(settle|installment|kist|next\s?week|agle\s?hafte|किस्त)/i.test(t)) return "SETTLEMENT";
-  if (/(reminder|overdue|due\s?since)/i.test(t)) return "COLLECTIONS_FOLLOWUP";
-  if (/(speak\s?to|connect\s?to|shopkeeper|owner|dukaan|दुकानदार|मालिक)/i.test(t)) return "ESCALATE";
-  if (items > 0) return "KHATA_ORDER";
-  if (amount || /(udhaar|udhar|credit|khate\s?mein|loan|chahiye|mangta|mangti|उधार|चाहिए)/i.test(t)) return "CREDIT_REQUEST";
-  if (/(help|madad|sahayata|मदद)/i.test(t)) return "GENERAL_HELP";
-  return "UNKNOWN";
+function detectIntent(t: string, items: number, amount?: number): { intent: Intent; confidence: number } {
+  const normalized = normalise(t);
+  if (isEndCall(t)) return { intent: "END_CALL", confidence: 0.99 };
+  if (/^(hi|hello|namaste|namaskar|salaam|hey|haanji|haan\s?ji|ಬೋಲಿ|नमस्ते|नमस्कार)\b/i.test(normalized) && normalized.length < 40) {
+    return { intent: "GREETING", confidence: 0.88 };
+  }
+
+  let best: { intent: Intent; confidence: number; hits: number } = { intent: "UNKNOWN", confidence: 0.2, hits: 0 };
+  for (const [intent, patterns] of Object.entries(INTENT_PATTERNS) as [Intent, RegExp[]][]) {
+    const hits = countMatches(t, patterns) + countMatches(normalized, patterns);
+    if (hits > best.hits) {
+      best = { intent, hits, confidence: Math.min(0.72 + hits * 0.1, 0.96) };
+    }
+  }
+
+  if (items > 0 && best.intent === "UNKNOWN") return { intent: "KHATA_ORDER", confidence: 0.82 };
+  if (amount && hasAny(t, INTENT_PATTERNS.CREDIT_REQUEST ?? [])) return { intent: "CREDIT_REQUEST", confidence: Math.max(best.confidence, 0.91) };
+  if (amount && best.intent === "UNKNOWN") return { intent: "CREDIT_REQUEST", confidence: 0.74 };
+  return { intent: best.intent, confidence: best.confidence };
 }
 
 export function runCommerceBrainRules(text: string): CommerceBrainOutput {
-  const endCall = isEndCall(text);
   const items = extractItems(text);
   const amount = extractAmount(text);
-  const intent: Intent = endCall ? "END_CALL" : detectIntent(text, items.length, amount);
-  const language = detectLanguage(text);
-  const confidence = endCall ? 0.99 : Math.min(0.6 + items.length * 0.1 + (amount ? 0.15 : 0) + (intent !== "UNKNOWN" ? 0.15 : 0), 0.98);
-  return { intent, language, items, amount, rawText: text, confidence, endCall };
+  const languageResult = detectLanguage(text);
+  const intentResult = detectIntent(text, items.length, amount);
+  const confidence = Math.min((languageResult.confidence + intentResult.confidence) / 2, 0.99);
+  return {
+    intent: intentResult.intent,
+    language: languageResult.language,
+    items,
+    amount,
+    rawText: text,
+    confidence,
+    languageConfidence: languageResult.confidence,
+    intentConfidence: intentResult.confidence,
+    endCall: intentResult.intent === "END_CALL",
+  };
 }
