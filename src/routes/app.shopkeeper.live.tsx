@@ -99,20 +99,25 @@ function LiveView() {
         />
       </div>
 
-      <Section title="Language routing debug">
+      <Section title="Pipeline debug · latest customer turn">
+        <DebugCard turn={[...call.transcript].reverse().find((t) => t.role === "customer")} agentTurn={lastAgentTurn} />
+      </Section>
+
+      <Section title="Per-turn trace (rolling)">
         <div className="rounded-2xl border border-emerald/20 bg-elevated/60 p-3 text-[11px]">
           <div className="mb-2 text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
-            Per-turn detection · routing · agent
+            Stage-by-stage routing
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto_auto_auto_auto] gap-x-2 gap-y-1 font-mono">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto_auto_auto_auto_auto] gap-x-2 gap-y-1 font-mono">
             <div className="text-ink-subtle">Transcript</div>
             <div className="text-ink-subtle text-right">Lang</div>
+            <div className="text-ink-subtle text-right">L-conf</div>
             <div className="text-ink-subtle text-right">Intent</div>
-            <div className="text-ink-subtle text-right">Lang conf</div>
-            <div className="text-ink-subtle text-right">Intent conf</div>
+            <div className="text-ink-subtle text-right">I-conf</div>
             <div className="text-ink-subtle text-right">Agent</div>
             <div className="text-ink-subtle text-right">Template</div>
-            {call.transcript.slice(-6).map((t, i) => (
+            <div className="text-ink-subtle text-right">FB</div>
+            {call.transcript.slice(-8).map((t, i) => (
               <FragmentRow key={i} t={t} />
             ))}
           </div>
