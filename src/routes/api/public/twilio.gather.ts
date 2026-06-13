@@ -38,6 +38,8 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
         const cid = url.searchParams.get("cid") ?? "";
         const speech = String(form.get("SpeechResult") ?? "").trim();
         const digits = String(form.get("Digits") ?? "").trim();
+        const speechConfidenceRaw = String(form.get("Confidence") ?? "");
+        const speechConfidence = speechConfidenceRaw ? parseFloat(speechConfidenceRaw) : undefined;
 
         // ===== Resolve locked language =====
         // Priority: URL param → call record → fallback "en"
@@ -59,6 +61,16 @@ export const Route = createFileRoute("/api/public/twilio/gather")({
         const stt = sttLocaleForCode(code);
         const sttModel = sttModelForCode(code);
         const hint = changeLangHint(code);
+        const expectedStt = code === "hi" ? "hi-IN" : code === "kn" ? "kn-IN" : "en-IN";
+
+        // ===== STT debug log =====
+        console.log("[KhataOS STT]", JSON.stringify({
+          cid, lockedLang: code, expectedSttLocale: expectedStt,
+          actualSttLocale: stt, sttModel,
+          rawTranscript: speech, transcriptLength: speech.length,
+          speechConfidence, digits,
+        }));
+
 
         // ===== "Press 9" → change language =====
         if (digits === "9") {
