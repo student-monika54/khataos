@@ -5,6 +5,7 @@ import { HeroStats } from "@/components/landing/HeroStats";
 import { Problem } from "@/components/landing/Problem";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { Architecture } from "@/components/landing/Architecture";
+import { OnDeviceAI } from "@/components/landing/OnDeviceAI";
 import { AgentNetwork } from "@/components/landing/AgentNetwork";
 import { Demo } from "@/components/landing/Demo";
 import { Impact } from "@/components/landing/Impact";
@@ -42,6 +43,7 @@ function Index() {
         <Problem />
         <HowItWorks />
         <Architecture />
+        <OnDeviceAI />
         <AgentNetwork />
         <Demo />
         <Impact />
