@@ -37,6 +37,11 @@ export type TranscriptTurn = {
   decision?: "approve" | "reject" | "conditional";
   reasoning?: string;
   latencyMs?: number;
+  // Debug / observability fields
+  fallback?: boolean;          // true => FALLBACK template fired
+  noIntentMatch?: boolean;     // true => classifier returned UNKNOWN
+  rawTranscript?: string;      // exact text as received from Twilio STT
+  pipelineStage?: "stt" | "commerce" | "financial" | "template" | "tts";
 };
 
 export type CallRecord = {
