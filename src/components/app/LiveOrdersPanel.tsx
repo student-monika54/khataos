@@ -5,7 +5,18 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, XCircle, AlertCircle, Loader2, Phone, Sparkles, Volume2 } from "lucide-react";
 import { formatINR } from "@/lib/khataos/data";
-import type { LiveOrder, LiveOrderStage } from "@/lib/khataos/live-orders.server";
+
+type LiveOrderStage =
+  | "listening" | "processing" | "checking_credit"
+  | "approved" | "rejected" | "conditional" | "ready_for_fulfillment";
+type LiveOrderItem = { name: string; quantity: string };
+type LiveOrder = {
+  id: string; callId: string; customerId: string; customerName: string; phone?: string;
+  items: LiveOrderItem[]; amount?: number; trustScore?: number;
+  outstanding?: number; creditLimit?: number;
+  stage: LiveOrderStage; decision?: "approve" | "reject" | "conditional";
+  reasoning?: string; language?: string; createdAt: number; updatedAt: number;
+};
 
 const STAGE_LABEL: Record<LiveOrderStage, string> = {
   listening: "Listening",
