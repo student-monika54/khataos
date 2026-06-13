@@ -1,0 +1,238 @@
+// Sarvam-powered voice loop.
+//
+// Flow per turn:
+//   Twilio <Record> finishes ─▶ POST /api/public/twilio/record
+//     1. Fetch the recording audio from Twilio (basic auth via env or
+//        the Lovable Twilio connector gateway).
+//     2. Sarvam saaras:v2.5 STT-translate ─▶ English transcript + detected
+//        source language (en-IN | hi-IN | kn-IN).
+//     3. Existing Commerce Brain + Financial Brain (orchestrator.processTurn)
+//        produces the reply text. UI / order pipeline unchanged.
+//     4. Sarvam TTS synthesises the reply in the customer's language.
+//     5. Return TwiML: <Play>{cached-tts-url}</Play><Record .../> to
+//        continue the conversation. <Hangup/> on END_CALL.
+//
+// Observability: every stage logs latency + decision under "[Sarvam pipeline]".
+
+import { createFileRoute } from "@tanstack/react-router";
+import {
+  appendTurnServer, getCall, patchCall, putCall,
+} from "@/lib/khataos/call-store.server";
+import {
+  isSarvamEnabled, sarvamTranslateSpeech, sarvamTextToSpeech,
+  type SarvamLangCode,
+} from "@/lib/khataos/sarvam.server";
+import { putTts } from "@/lib/khataos/tts-cache.server";
+import { processTurn } from "@/lib/khataos/orchestrator.server";
+import { publishLiveOrder } from "@/lib/khataos/live-orders.server";
+
+function twiml(xml: string) {
+  return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response>${xml}</Response>`, {
+    headers: { "Content-Type": "text/xml" },
+  });
+}
+function escapeXml(s: string) {
+  return s.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]!));
+}
+
+function langToTemplate(code: SarvamLangCode): "en" | "hi" | "kn" {
+  return code === "hi-IN" ? "hi" : code === "kn-IN" ? "kn" : "en";
+}
+function langToTwilioVoice(code: SarvamLangCode): { voice: string; locale: string } {
+  // Fallback only when Sarvam TTS itself fails.
+  if (code === "hi-IN") return { voice: "Polly.Aditi", locale: "hi-IN" };
+  if (code === "kn-IN") return { voice: "Google.kn-IN-Standard-A", locale: "kn-IN" };
+  return { voice: "Polly.Raveena", locale: "en-IN" };
+}
+
+// Fetch the Twilio recording bytes. Tries direct basic-auth first
+// (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN), falls back to the Lovable
+// Twilio connector gateway.
+async function fetchTwilioRecording(recordingUrl: string): Promise<{ bytes: Uint8Array; contentType: string }> {
+  const mp3Url = recordingUrl.endsWith(".mp3") ? recordingUrl : `${recordingUrl}.mp3`;
+
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  if (sid && token) {
+    const auth = "Basic " + btoa(`${sid}:${token}`);
+    for (let i = 0; i < 3; i++) {
+      const r = await fetch(mp3Url, { headers: { Authorization: auth } });
+      if (r.ok) return { bytes: new Uint8Array(await r.arrayBuffer()), contentType: r.headers.get("content-type") ?? "audio/mpeg" };
+      if (r.status !== 404) throw new Error(`Twilio recording fetch ${r.status}`);
+      await new Promise((res) => setTimeout(res, 600));
+    }
+  }
+
+  const lovKey = process.env.LOVABLE_API_KEY;
+  const twKey = process.env.TWILIO_API_KEY;
+  if (lovKey && twKey) {
+    // RecordingUrl looks like: https://api.twilio.com/2010-04-01/Accounts/AC.../Recordings/RE...
+    const m = recordingUrl.match(/Recordings\/(RE[a-zA-Z0-9]+)/);
+    if (m) {
+      const gwUrl = `https://connector-gateway.lovable.dev/twilio/Recordings/${m[1]}.mp3`;
+      for (let i = 0; i < 3; i++) {
+        const r = await fetch(gwUrl, {
+          headers: {
+            "Authorization": `Bearer ${lovKey}`,
+            "X-Connection-Api-Key": twKey,
+          },
+        });
+        if (r.ok) return { bytes: new Uint8Array(await r.arrayBuffer()), contentType: r.headers.get("content-type") ?? "audio/mpeg" };
+        if (r.status !== 404) throw new Error(`Twilio gateway recording fetch ${r.status}`);
+        await new Promise((res) => setTimeout(res, 600));
+      }
+    }
+  }
+  throw new Error("Could not fetch Twilio recording (no credentials)");
+}
+
+function recordTwiml(base: string, cid: string): string {
+  return `
+    <Record action="${base}/api/public/twilio/record?cid=${encodeURIComponent(cid)}"
+            method="POST"
+            maxLength="15"
+            timeout="2"
+            playBeep="false"
+            trim="trim-silence"
+            finishOnKey="#" />
+  `;
+}
+
+function fallbackSayTwiml(text: string, code: SarvamLangCode): string {
+  const v = langToTwilioVoice(code);
+  return `<Say voice="${v.voice}" language="${v.locale}">${escapeXml(text)}</Say>`;
+}
+
+export const Route = createFileRoute("/api/public/twilio/record")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        if (!isSarvamEnabled()) {
+          // Sarvam not configured — fall back to the legacy DTMF menu.
+          const url = new URL(request.url);
+          return twiml(`<Redirect method="POST">${url.origin}/api/public/twilio/voice?legacy=1</Redirect>`);
+        }
+
+        const form = await request.formData();
+        const url = new URL(request.url);
+        const base = url.origin;
+        const cid = url.searchParams.get("cid") ?? `twilio_${Date.now()}`;
+        const recordingUrl = String(form.get("RecordingUrl") ?? "");
+        const recordingDuration = Number(form.get("RecordingDuration") ?? 0);
+        const from = String(form.get("From") ?? "");
+
+        let call = getCall(cid);
+        if (!call) {
+          putCall({
+            id: cid, customerId: "c_me", customerName: "Ramesh Kumar",
+            phone: from || "+91-unknown", state: "listening",
+            startedAt: Date.now(), transcript: [], source: "twilio",
+          });
+          call = getCall(cid)!;
+        }
+
+        // No speech captured (silence) — re-prompt once.
+        if (!recordingUrl || recordingDuration < 1) {
+          return twiml(`
+            ${fallbackSayTwiml("I didn't catch that. Please speak after the tone.", "en-IN")}
+            ${recordTwiml(base, cid)}
+          `);
+        }
+
+        // ===== STT =====
+        let transcript = "";
+        let detectedLang: SarvamLangCode = "en-IN";
+        let sttLatency = 0;
+        try {
+          const audio = await fetchTwilioRecording(recordingUrl);
+          const stt = await sarvamTranslateSpeech(audio.bytes, "audio.mp3", audio.contentType);
+          transcript = stt.transcript;
+          detectedLang = stt.languageCode;
+          sttLatency = stt.latencyMs;
+        } catch (err) {
+          console.error("[Sarvam pipeline] STT error", err);
+          return twiml(`
+            ${fallbackSayTwiml("Sorry, I could not understand. Please try again.", "en-IN")}
+            ${recordTwiml(base, cid)}
+          `);
+        }
+
+        if (!transcript) {
+          return twiml(`
+            ${fallbackSayTwiml("I didn't catch that. Please repeat.", detectedLang)}
+            ${recordTwiml(base, cid)}
+          `);
+        }
+
+        appendTurnServer(cid, {
+          role: "customer", at: Date.now(), text: transcript, rawTranscript: transcript,
+          language: detectedLang === "hi-IN" ? "Hindi" : detectedLang === "kn-IN" ? "Kannada" : "English",
+          pipelineStage: "stt", sttProvider: "deepgram", deepgramModel: "sarvam:saaras-v2.5",
+          deepgramDetectedLanguage: detectedLang, deepgramLatencyMs: sttLatency,
+        });
+
+        // ===== Brain (UNCHANGED) =====
+        const ctxOut = await processTurn(transcript, {
+          customerId: call.customerId,
+          customerName: call.customerName || "Customer",
+          trustScore: 82,
+          outstanding: 1850,
+          creditLimit: 5000,
+          reliability: 91,
+          forcedLanguage: detectedLang === "hi-IN" ? "Hindi" : detectedLang === "kn-IN" ? "Kannada" : "English",
+          forcedTemplateLang: langToTemplate(detectedLang),
+        });
+
+        // Persist agent + customer enriched turns.
+        for (const t of ctxOut.turns) appendTurnServer(cid, t);
+        patchCall(cid, { language: ctxOut.commerce.language, currentIntent: ctxOut.commerce.intent, currentAgent: ctxOut.financial.agent });
+
+        // Side-effect: KHATA_ORDER → publish to live-orders pipeline so the
+        // shopkeeper dashboard updates immediately, before the call ends.
+        if (ctxOut.commerce.intent === "KHATA_ORDER" && ctxOut.commerce.items.length > 0) {
+          const orderId = `lo_${cid}_${Date.now()}`;
+          const stage = ctxOut.financial.decision === "approve" ? "ready_for_fulfillment"
+            : ctxOut.financial.decision === "reject" ? "rejected"
+            : ctxOut.financial.decision === "conditional" ? "conditional"
+            : "checking_credit";
+          publishLiveOrder({
+            id: orderId, callId: cid,
+            customerId: call.customerId, customerName: call.customerName, phone: call.phone,
+            items: ctxOut.commerce.items,
+            amount: ctxOut.amount ?? 0,
+            trustScore: 82, outstanding: 1850, creditLimit: 5000,
+            stage,
+            decision: ctxOut.financial.decision === "info" ? undefined : ctxOut.financial.decision,
+            reasoning: ctxOut.financial.reasoning,
+            language: ctxOut.commerce.language,
+            createdAt: Date.now(), updatedAt: Date.now(),
+          });
+        }
+
+        // ===== TTS =====
+        let playFragment = "";
+        try {
+          const tts = await sarvamTextToSpeech(ctxOut.reply, detectedLang);
+          const ttsId = `${cid}_${Date.now()}`;
+          putTts(ttsId, tts.audio, tts.contentType);
+          playFragment = `<Play>${base}/api/public/twilio/tts/${encodeURIComponent(ttsId)}</Play>`;
+          console.log("[Sarvam pipeline]", JSON.stringify({
+            cid, language: detectedLang, transcript, intent: ctxOut.commerce.intent,
+            items: ctxOut.commerce.items, decision: ctxOut.financial.decision,
+            sttLatency, ttsLatency: tts.latencyMs,
+          }));
+        } catch (err) {
+          console.error("[Sarvam pipeline] TTS error, falling back to <Say>", err);
+          playFragment = fallbackSayTwiml(ctxOut.reply, detectedLang);
+        }
+
+        if (ctxOut.endCall) {
+          patchCall(cid, { state: "completed", endedAt: Date.now(), durationSec: Math.round((Date.now() - call.startedAt) / 1000), outcome: "info" });
+          return twiml(`${playFragment}<Hangup/>`);
+        }
+
+        return twiml(`${playFragment}${recordTwiml(base, cid)}`);
+      },
+    },
+  },
+});
