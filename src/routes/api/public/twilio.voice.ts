@@ -1,4 +1,14 @@
-// Twilio Voice webhook — answers an inbound call and starts a Gather loop.
+// Twilio Voice webhook — entry point for inbound calls.
+// Plays a multilingual welcome and immediately presents the DTMF
+// language-selection menu. Language is NEVER auto-detected; the caller
+// explicitly selects English / Hindi / Kannada by pressing 1 / 2 / 3.
+//
+// Flow:
+//   /voice   → welcome (en, hi, kn) → Gather DTMF → /menu
+//   /menu    → store call.language → speak greeting → Gather speech → /gather
+//   /gather  → orchestrator (forced language) → reply → Gather speech → /gather
+//              Caller may press 9 at any time during a Gather to return to /menu.
+
 import { createFileRoute } from "@tanstack/react-router";
 import { putCall } from "@/lib/khataos/call-store.server";
 
@@ -8,8 +18,28 @@ function twiml(xml: string) {
   });
 }
 
-const GREETING_HI = "नमस्ते, यह KhataOS है। मैं आपकी कैसे मदद कर सकता हूँ?";
-const GREETING_EN = "Namaste. This is KhataOS, your AI khata assistant. You can speak in Hindi, English, Hinglish or Kannada.";
+// Multilingual welcome — three short lines so every caller hears their
+// language confirmed before the menu starts.
+function welcomeXml(): string {
+  return `
+    <Say voice="Polly.Raveena" language="en-IN">Welcome to KhataOS, your AI financial assistant.</Say>
+    <Say voice="Polly.Aditi" language="hi-IN">KhataOS mein aapka swagat hai.</Say>
+    <Say voice="Google.kn-IN-Standard-A" language="kn-IN">KhataOS ge swagatha.</Say>
+  `;
+}
+
+// DTMF language menu — 1 English, 2 Hindi, 3 Kannada.
+function menuPromptXml(base: string, cid: string): string {
+  return `
+    <Gather input="dtmf" numDigits="1" timeout="6"
+            action="${base}/api/public/twilio/menu?cid=${encodeURIComponent(cid)}" method="POST">
+      <Say voice="Polly.Raveena" language="en-IN">Press 1 for English.</Say>
+      <Say voice="Polly.Aditi" language="hi-IN">Hindi ke liye 2 dabaayein.</Say>
+      <Say voice="Google.kn-IN-Standard-A" language="kn-IN">Kannada baashege moorane sankhye ottirisi.</Say>
+    </Gather>
+    <Redirect method="POST">${base}/api/public/twilio/voice</Redirect>
+  `;
+}
 
 export const Route = createFileRoute("/api/public/twilio/voice")({
   server: {
@@ -23,32 +53,13 @@ export const Route = createFileRoute("/api/public/twilio/voice")({
         putCall({
           id, twilioSid: sid, customerId: from, customerName: "Inbound caller",
           phone: from, state: "listening", startedAt: Date.now(),
-          transcript: [{ role: "agent", text: GREETING_EN, at: Date.now(), templateId: "GREETING", agent: "InsightsAgent" }],
-          source: "twilio",
+          transcript: [], source: "twilio",
         });
 
         const url = new URL(request.url);
         const base = url.origin;
-        const wantStream = url.searchParams.get("stream") === "1";
-        const streamUrl = (process.env.TWILIO_MEDIA_STREAM_WSS ?? "").trim();
 
-        const streamXml = wantStream && streamUrl
-          ? `<Start><Stream url="${streamUrl}"><Parameter name="callId" value="${id}"/></Stream></Start>`
-          : "";
-
-        // Default the first Gather to hi-IN — most callers are Hindi /
-        // Hinglish speakers. Subsequent gathers adapt per detected language.
-        return twiml(`
-          ${streamXml}
-          <Say voice="Polly.Aditi" language="hi-IN">${GREETING_HI}</Say>
-          <Say voice="Polly.Raveena" language="en-IN">${GREETING_EN}</Say>
-          <Gather input="speech" speechTimeout="auto" language="hi-IN"
-                  action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(id)}"
-                  method="POST" speechModel="experimental_conversations">
-            <Say voice="Polly.Aditi" language="hi-IN">बोलिए, मैं सुन रहा हूँ।</Say>
-          </Gather>
-          <Redirect method="POST">${base}/api/public/twilio/voice${wantStream ? "?stream=1" : ""}</Redirect>
-        `);
+        return twiml(`${welcomeXml()}${menuPromptXml(base, id)}`);
       },
       GET: async () => twiml(`<Say>KhataOS Twilio webhook ready. POST only.</Say>`),
     },
