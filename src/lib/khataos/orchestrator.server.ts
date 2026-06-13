@@ -27,13 +27,13 @@ export async function processTurn(text: string, ctx: ConversationContext) {
   if (commerce.intent === "END_CALL") {
     const reply = renderTemplate("END_CALL", { customerName: ctx.customerName }, lang);
     const turns: TranscriptTurn[] = [
-      { role: "customer", text, at: t0, intent: "END_CALL", language: commerce.language },
+      { role: "customer", text, at: t0, intent: "END_CALL", language: commerce.language, confidence: commerce.confidence },
       { role: "agent", text: reply, at: Date.now(), intent: "END_CALL", agent: "InsightsAgent",
-        templateId: "END_CALL", latencyMs: Date.now() - t0 },
+        templateId: "END_CALL", templateLang: lang, language: commerce.language, latencyMs: Date.now() - t0 },
     ];
     return {
       commerce, financial: { agent: "InsightsAgent" as const, decision: "info" as const, reasoning: "Customer ended the call." },
-      templateId: "END_CALL", reply, turns, newOutstanding: ctx.outstanding, amount: undefined,
+      templateId: "END_CALL", templateLang: lang, reply, turns, newOutstanding: ctx.outstanding, amount: undefined,
       endCall: true,
     };
   }
