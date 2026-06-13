@@ -1,7 +1,7 @@
 // Browser Commerce Brain — lazy-loads WebLLM (Llama-3.2-1B-Instruct q4f16)
 // on demand. Falls back to deterministic rules if WebLLM is unavailable.
 
-import { runCommerceBrainRules, type CommerceBrainOutput } from "./commerce-brain.server";
+import { runCommerceBrainRules, type CommerceBrainOutput } from "./commerce-brain-rules";
 
 let engine: any = null;
 let loadPromise: Promise<any> | null = null;

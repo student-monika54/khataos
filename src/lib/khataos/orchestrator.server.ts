@@ -1,7 +1,7 @@
 // Orchestrator: Commerce Brain (rules) → Financial Brain → Template Engine.
 // Used by both Twilio gather webhook and the simulated dialer.
 
-import { runCommerceBrainRules } from "./commerce-brain.server";
+import { runCommerceBrainRules } from "./commerce-brain-rules";
 import { runFinancialBrain } from "./financial-brain.server";
 import { pickTemplate, renderTemplate } from "./templates";
 import type { TranscriptTurn } from "./calls";

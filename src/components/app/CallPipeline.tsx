@@ -2,7 +2,7 @@
 // Brain (cloud) → Template Engine. Each stage glows when active.
 
 import { Cpu, Brain, FileText, ArrowRight } from "lucide-react";
-import type { CommerceBrainOutput } from "@/lib/khataos/commerce-brain.server";
+import type { CommerceBrainOutput } from "@/lib/khataos/commerce-brain-rules";
 
 export type PipelineStage = "idle" | "commerce" | "financial" | "template" | "done";
 
