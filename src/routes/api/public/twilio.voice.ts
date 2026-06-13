@@ -34,14 +34,15 @@ function legacyMenuXml(base: string, cid: string): string {
 }
 
 function sarvamGreetingXml(base: string, cid: string): string {
-  // Trilingual greeting — Sarvam handles whatever the caller responds in.
+  // English → Kannada → Hindi only; Sarvam can still detect Tamil/Telugu when spoken.
   return `
-    <Say voice="Polly.Raveena" language="en-IN">Welcome to KhataOS. Please speak after the tone — in any language.</Say>
-    <Say voice="Polly.Aditi" language="hi-IN">Aap koi bhi bhasha mein bol sakte hain.</Say>
+    <Say voice="Polly.Raveena" language="en-IN">Welcome to KhataOS.</Say>
+    <Say voice="Google.kn-IN-Standard-A" language="kn-IN">KhataOS ge swagatha.</Say>
+    <Say voice="Polly.Aditi" language="hi-IN">KhataOS mein aapka swagat hai.</Say>
     <Record action="${base}/api/public/twilio/record?cid=${encodeURIComponent(cid)}"
             method="POST"
-            maxLength="15"
-            timeout="2"
+            maxLength="20"
+            timeout="3"
             playBeep="true"
             trim="trim-silence"
             finishOnKey="#" />
