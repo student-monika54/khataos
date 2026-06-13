@@ -94,6 +94,62 @@ function isEndCall(text: string): boolean {
 const PAYMENT_CONFIRM = /\b(paid|paid\s?already|done\s?payment|payment\s?done|payment\s?ho\s?gaya|paisa\s?bhej\s?diya|paise\s?bhej\s?diye|bhej\s?diya|transfer\s?kar\s?diya|upi\s?kar\s?diya|gpay\s?kar\s?diya|phonepe\s?kar\s?diya|paytm\s?kar\s?diya|kar\s?diya\s?payment|de\s?diya\s?paisa)\b|(भुगतान\s*कर\s*दिया|पैसे\s*भेज\s*दिए|भेज\s*दिया)/i;
 const PAYMENT_PROMISE = /\b(kal\s?karunga|kal\s?karungi|kal\s?tak|agle\s?hafte|next\s?week|tomorrow|day\s?after|paal\s?baad|baad\s?mein\s?karunga|thodi\s?der\s?mein|will\s?pay|pay\s?karunga|pay\s?karungi|chukaunga|chukaungi|de\s?dunga|de\s?dungi)\b|(कल\s*दूंगा|कल\s*दूंगी|अगले\s*हफ्ते|कल\s*तक)/i;
 
+const INTENT_PATTERNS: Partial<Record<Intent, RegExp[]>> = {
+  BALANCE_INQUIRY: [
+    /\b(balance|outstanding|dues?|due\s+amount|amount\s+due|owe|owed|how\s+much|what\s+is\s+my\s+(balance|outstanding)|check\s+my\s+balance)\b/i,
+    /\b(mera|meri|my)?\s*(khata|khaata|account|balance|bakaaya|bakaya|baki)\s*(kitna|check|dikhao|batao|hai)?\b/i,
+    /(मेरा\s*)?(बैलेंस|बकाया|खाता|बाकी).*(कितना|बताइए|बताओ|चेक)|(कितना\s*(बकाया|बाकी))/i,
+    /(ಬಾಕಿ|ಬ್ಯಾಲೆನ್ಸ್|ಖಾತೆ|ಎಷ್ಟು|ಎಷ್ಟಿದೆ|balance|outstanding)/i,
+  ],
+  CREDIT_REQUEST: [
+    /\b(can\s+i\s+get|need|want|request|give\s+me|can\s+you\s+give).{0,40}\b(credit|loan|more\s+credit|rupees?|rs|₹)\b/i,
+    /\b(credit|loan|udhaar|udhar|khate\s+mein|khata\s+mein).{0,30}\b(chahiye|chaiye|need|want|de\s?do|dijiye|more|aur)\b/i,
+    /\b(mujhe|mereko).{0,35}\b(credit|udhaar|rupaye|rupees?|paisa|paise).{0,35}\b(chahiye|de\s?do|dijiye|aur)\b/i,
+    /(उधार|क्रेडिट|लोन|रुपये).*(चाहिए|दीजिए|दे दो|मिलेगा|और)|(मुझे).*(उधार|क्रेडिट)/i,
+    /(ಸಾಲ|ಕ್ರೆಡಿಟ್|ಉಧಾರ|ರೂಪಾಯಿ|ಹಣ).*(ಬೇಕು|ಕೊಡಿ|ಸಿಗುತ್ತದೆಯೇ|ಹೆಚ್ಚು)|(ನನಗೆ).*(ಸಾಲ|ಕ್ರೆಡಿಟ್|ಹಣ)/i,
+  ],
+  PAYMENT_CONFIRMATION: [
+    PAYMENT_CONFIRM,
+    /\b(i\s+paid|paid\s+my\s+dues?|dues?\s+paid|payment\s+(is\s+)?done|i\s+have\s+paid|already\s+paid|sent\s+the\s+money|transferred)\b/i,
+    /\b(payment|paisa|paise|amount|dues?)\s*(kar\s*diya|ho\s*gaya|bhej\s*diya|de\s*diya|paid|done)\b/i,
+    /(मैंने|मैने).*(भुगतान|पेमेंट|पैसे).*(कर\s*दिया|भेज\s*दिए|दे\s*दिए)|(भुगतान|पेमेंट).*(हो\s*गया|कर\s*दिया)/i,
+    /(ಪಾವತಿ|ಹಣ).*(ಮಾಡಿದೆ|ಕಟ್ಟಿದೆ|ಕೊಟ್ಟಿದ್ದೇನೆ|ಕಳುಹಿಸಿದೆ)|(ನಾನು).*(ಪಾವತಿ|ಹಣ).*(ಮಾಡಿದೆ|ಕಟ್ಟಿದೆ)/i,
+  ],
+  REPAYMENT: [
+    /\b(pay\s+now|repay|make\s+a\s+payment|settle\s+now|clear\s+dues?)\b/i,
+    /\b(abhi|aaj).{0,20}\b(pay|payment|chuka|de\s*dunga|settle)\b/i,
+    /(अभी|आज).*(भुगतान|पेमेंट|चुका|देना)/i,
+    /(ಈಗ|ಇಂದು).*(ಪಾವತಿ|ಕಟ್ಟುತ್ತೇನೆ|ಕೊಡುತ್ತೇನೆ)/i,
+  ],
+  SETTLEMENT: [
+    PAYMENT_PROMISE,
+    /\b(settlement|installment|instalment|pay\s+later|next\s+week|tomorrow|promise\s+to\s+pay|will\s+pay)\b/i,
+    /\b(kal|agle\s+hafte|baad\s+mein|kist|kishti|thodi\s+der).{0,30}\b(pay|payment|chuka|dunga|dungi|karunga|karungi)\b/i,
+    /(कल|अगले\s*हफ्ते|किस्त|बाद\s*में).*(भुगतान|पेमेंट|दूंगा|दूंगी|करूँगा|करूंगा)/i,
+    /(ನಾಳೆ|ಮುಂದಿನ\s*ವಾರ|ಕಂತು|ನಂತರ).*(ಪಾವತಿ|ಕಟ್ಟುತ್ತೇನೆ|ಕೊಡುತ್ತೇನೆ)/i,
+  ],
+  TRUST_INQUIRY: [
+    /\b(trust|score|rating|credit\s+score|bharosa)\b/i,
+    /(भरोसा|ट्रस्ट|स्कोर|रेटिंग)/i,
+    /(ನಂಬಿಕೆ|ಸ್ಕೋರ್|ರೇಟಿಂಗ್|trust)/i,
+  ],
+  COLLECTIONS_FOLLOWUP: [
+    /\b(reminder|overdue|late\s+payment|due\s+since|collection)\b/i,
+    /(याद\s*दिलाना|ओवरड्यू|बकाया\s*देरी|देर\s*से)/i,
+    /(ನೆನಪು|ಬಾಕಿ|ತಡ|overdue)/i,
+  ],
+  ESCALATE: [
+    /\b(speak\s+to|connect\s+to|shopkeeper|owner|human|agent|dukaan|dukan)\b/i,
+    /(दुकानदार|मालिक|इंसान|बात\s*करनी)/i,
+    /(ಅಂಗಡಿಯವರು|ಮಾಲೀಕ|ಮಾನವ|ಮಾತನಾಡಬೇಕು)/i,
+  ],
+  GENERAL_HELP: [
+    /\b(help|support|what\s+can\s+you\s+do|madad|sahayata)\b/i,
+    /(मदद|सहायता)/i,
+    /(ಸಹಾಯ|help)/i,
+  ],
+};
+
 // ============ ITEMS / AMOUNT ============
 const ITEM_DICT: Record<string, string> = {
   atta: "Atta", aata: "Atta", flour: "Atta",
