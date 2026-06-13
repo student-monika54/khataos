@@ -144,7 +144,7 @@ function CustomerHome() {
 
 function QuickAction({ to, icon: Icon, label, sub }: { to: string; icon: any; label: string; sub: string }) {
   return (
-    <Link to={to} className="flex items-center gap-3 rounded-2xl border border-border bg-elevated/60 px-3.5 py-3 transition hover:border-emerald/40">
+    <Link to={to as any} className="flex items-center gap-3 rounded-2xl border border-border bg-elevated/60 px-3.5 py-3 transition hover:border-emerald/40">
       <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald/15 text-emerald">
         <Icon className="h-4 w-4" />
       </div>
