@@ -9,6 +9,7 @@ import { AgentNetwork } from "@/components/landing/AgentNetwork";
 import { Demo } from "@/components/landing/Demo";
 import { Impact } from "@/components/landing/Impact";
 import { FinalCTA } from "@/components/landing/FinalCTA";
+import { InstallPWA } from "@/components/landing/InstallPWA";
 import { Footer } from "@/components/landing/Footer";
 
 export const Route = createFileRoute("/")({
@@ -44,6 +45,7 @@ function Index() {
         <AgentNetwork />
         <Demo />
         <Impact />
+        <InstallPWA />
         <FinalCTA />
       </main>
       <Footer />
