@@ -3,12 +3,19 @@ import { useSyncExternalStore } from "react";
 
 export type CallState =
   | "incoming" | "connecting" | "listening" | "thinking"
-  | "generating" | "responding" | "completed" | "failed" | "escalated";
+  | "generating" | "responding" | "ending" | "completed" | "failed" | "escalated";
 
 export type Intent =
-  | "BALANCE_INQUIRY" | "KHATA_ORDER" | "CREDIT_REQUEST"
+  | "END_CALL"
+  | "GREETING"
+  | "BALANCE_INQUIRY"
+  | "KHATA_ORDER"
+  | "CREDIT_REQUEST"
+  | "PAYMENT_CONFIRMATION"
+  | "PAYMENT_PROMISE"
   | "REPAYMENT" | "SETTLEMENT" | "TRUST_INQUIRY"
-  | "COLLECTIONS_FOLLOWUP" | "ESCALATE" | "GREETING" | "UNKNOWN";
+  | "COLLECTIONS_FOLLOWUP" | "ESCALATE"
+  | "GENERAL_HELP" | "UNKNOWN";
 
 export type AgentName =
   | "CreditAgent" | "TrustAgent" | "CollectionsAgent"
