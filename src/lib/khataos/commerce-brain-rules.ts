@@ -103,6 +103,7 @@ const INTENT_PATTERNS: Partial<Record<Intent, RegExp[]>> = {
     /\b(mera|meri|my)?\s*(khata|khaata|account|balance|bakaaya|bakaya|baki)\s*(kitna|check|dikhao|batao|hai)?\b/i,
     /(मेरा\s*)?(बैलेंस|बकाया|खाता|बाकी).*(कितना|बताइए|बताओ|चेक)|(कितना\s*(बकाया|बाकी))/i,
     /(ಬಾಕಿ|ಬ್ಯಾಲೆನ್ಸ್|ಖಾತೆ|ಎಷ್ಟು|ಎಷ್ಟಿದೆ|balance|outstanding)/i,
+    /\b(nanna|nanage)?\s*(balance|baki|baaki|khate|account).{0,20}\b(eshtu|check|heli|tilisi|ide)\b/i,
   ],
   CREDIT_REQUEST: [
     /\b(can\s+i\s+get|need|want|request|give\s+me|can\s+you\s+give).{0,40}\b(credit|loan|more\s+credit|rupees?|rs|₹)\b/i,
