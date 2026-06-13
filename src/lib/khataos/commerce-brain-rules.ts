@@ -73,6 +73,7 @@ const END_CALL_PATTERNS: RegExp[] = [
   /(अलविदा|धन्यवाद|शुक्रिया|फोन\s*रखो|फोन\s*रखिये|कॉल\s*बंद|बस\s*हो\s*गया|बस\s*इतना|बस\s*इतनी|कुछ\s*नहीं\s*चाहिए|काम\s*हो\s*गया|बाय|गुडबाय)/,
   // Kannada
   /(ಧನ್ಯವಾದ|ಧನ್ಯವಾದಗಳು|ವಂದನೆ|ಬಾಯ್|ಮುಗಿಯಿತು|ಸಾಕು)/,
+  /\b(dhanyavada|dhanyavadagalu|bye|saaku|mugiyitu|call\s+cut\s+maadi|phone\s+idi)\b/i,
 ];
 
 function isEndCall(text: string): boolean {
