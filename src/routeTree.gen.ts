@@ -13,7 +13,13 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as ApiKhataosRouteImport } from './routes/api/khataos'
+import { Route as AppShopkeeperIndexRouteImport } from './routes/app.shopkeeper.index'
 import { Route as AppCustomerIndexRouteImport } from './routes/app.customer.index'
+import { Route as AppShopkeeperProcurementRouteImport } from './routes/app.shopkeeper.procurement'
+import { Route as AppShopkeeperOrdersRouteImport } from './routes/app.shopkeeper.orders'
+import { Route as AppShopkeeperLedgerRouteImport } from './routes/app.shopkeeper.ledger'
+import { Route as AppShopkeeperInsightsRouteImport } from './routes/app.shopkeeper.insights'
+import { Route as AppShopkeeperCollectionsRouteImport } from './routes/app.shopkeeper.collections'
 import { Route as AppCustomerVoiceRouteImport } from './routes/app.customer.voice'
 import { Route as AppCustomerTrustRouteImport } from './routes/app.customer.trust'
 import { Route as AppCustomerRepaymentsRouteImport } from './routes/app.customer.repayments'
@@ -39,11 +45,43 @@ const ApiKhataosRoute = ApiKhataosRouteImport.update({
   path: '/api/khataos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppShopkeeperIndexRoute = AppShopkeeperIndexRouteImport.update({
+  id: '/shopkeeper/',
+  path: '/shopkeeper/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCustomerIndexRoute = AppCustomerIndexRouteImport.update({
   id: '/customer/',
   path: '/customer/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppShopkeeperProcurementRoute =
+  AppShopkeeperProcurementRouteImport.update({
+    id: '/shopkeeper/procurement',
+    path: '/shopkeeper/procurement',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppShopkeeperOrdersRoute = AppShopkeeperOrdersRouteImport.update({
+  id: '/shopkeeper/orders',
+  path: '/shopkeeper/orders',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppShopkeeperLedgerRoute = AppShopkeeperLedgerRouteImport.update({
+  id: '/shopkeeper/ledger',
+  path: '/shopkeeper/ledger',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppShopkeeperInsightsRoute = AppShopkeeperInsightsRouteImport.update({
+  id: '/shopkeeper/insights',
+  path: '/shopkeeper/insights',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppShopkeeperCollectionsRoute =
+  AppShopkeeperCollectionsRouteImport.update({
+    id: '/shopkeeper/collections',
+    path: '/shopkeeper/collections',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppCustomerVoiceRoute = AppCustomerVoiceRouteImport.update({
   id: '/customer/voice',
   path: '/customer/voice',
@@ -74,7 +112,13 @@ export interface FileRoutesByFullPath {
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
   '/app/customer/voice': typeof AppCustomerVoiceRoute
+  '/app/shopkeeper/collections': typeof AppShopkeeperCollectionsRoute
+  '/app/shopkeeper/insights': typeof AppShopkeeperInsightsRoute
+  '/app/shopkeeper/ledger': typeof AppShopkeeperLedgerRoute
+  '/app/shopkeeper/orders': typeof AppShopkeeperOrdersRoute
+  '/app/shopkeeper/procurement': typeof AppShopkeeperProcurementRoute
   '/app/customer/': typeof AppCustomerIndexRoute
+  '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -84,7 +128,13 @@ export interface FileRoutesByTo {
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
   '/app/customer/voice': typeof AppCustomerVoiceRoute
+  '/app/shopkeeper/collections': typeof AppShopkeeperCollectionsRoute
+  '/app/shopkeeper/insights': typeof AppShopkeeperInsightsRoute
+  '/app/shopkeeper/ledger': typeof AppShopkeeperLedgerRoute
+  '/app/shopkeeper/orders': typeof AppShopkeeperOrdersRoute
+  '/app/shopkeeper/procurement': typeof AppShopkeeperProcurementRoute
   '/app/customer': typeof AppCustomerIndexRoute
+  '/app/shopkeeper': typeof AppShopkeeperIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -96,7 +146,13 @@ export interface FileRoutesById {
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
   '/app/customer/voice': typeof AppCustomerVoiceRoute
+  '/app/shopkeeper/collections': typeof AppShopkeeperCollectionsRoute
+  '/app/shopkeeper/insights': typeof AppShopkeeperInsightsRoute
+  '/app/shopkeeper/ledger': typeof AppShopkeeperLedgerRoute
+  '/app/shopkeeper/orders': typeof AppShopkeeperOrdersRoute
+  '/app/shopkeeper/procurement': typeof AppShopkeeperProcurementRoute
   '/app/customer/': typeof AppCustomerIndexRoute
+  '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,7 +165,13 @@ export interface FileRouteTypes {
     | '/app/customer/repayments'
     | '/app/customer/trust'
     | '/app/customer/voice'
+    | '/app/shopkeeper/collections'
+    | '/app/shopkeeper/insights'
+    | '/app/shopkeeper/ledger'
+    | '/app/shopkeeper/orders'
+    | '/app/shopkeeper/procurement'
     | '/app/customer/'
+    | '/app/shopkeeper/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -119,7 +181,13 @@ export interface FileRouteTypes {
     | '/app/customer/repayments'
     | '/app/customer/trust'
     | '/app/customer/voice'
+    | '/app/shopkeeper/collections'
+    | '/app/shopkeeper/insights'
+    | '/app/shopkeeper/ledger'
+    | '/app/shopkeeper/orders'
+    | '/app/shopkeeper/procurement'
     | '/app/customer'
+    | '/app/shopkeeper'
   id:
     | '__root__'
     | '/'
@@ -130,7 +198,13 @@ export interface FileRouteTypes {
     | '/app/customer/repayments'
     | '/app/customer/trust'
     | '/app/customer/voice'
+    | '/app/shopkeeper/collections'
+    | '/app/shopkeeper/insights'
+    | '/app/shopkeeper/ledger'
+    | '/app/shopkeeper/orders'
+    | '/app/shopkeeper/procurement'
     | '/app/customer/'
+    | '/app/shopkeeper/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -169,11 +243,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiKhataosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/shopkeeper/': {
+      id: '/app/shopkeeper/'
+      path: '/shopkeeper'
+      fullPath: '/app/shopkeeper/'
+      preLoaderRoute: typeof AppShopkeeperIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/customer/': {
       id: '/app/customer/'
       path: '/customer'
       fullPath: '/app/customer/'
       preLoaderRoute: typeof AppCustomerIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/shopkeeper/procurement': {
+      id: '/app/shopkeeper/procurement'
+      path: '/shopkeeper/procurement'
+      fullPath: '/app/shopkeeper/procurement'
+      preLoaderRoute: typeof AppShopkeeperProcurementRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/shopkeeper/orders': {
+      id: '/app/shopkeeper/orders'
+      path: '/shopkeeper/orders'
+      fullPath: '/app/shopkeeper/orders'
+      preLoaderRoute: typeof AppShopkeeperOrdersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/shopkeeper/ledger': {
+      id: '/app/shopkeeper/ledger'
+      path: '/shopkeeper/ledger'
+      fullPath: '/app/shopkeeper/ledger'
+      preLoaderRoute: typeof AppShopkeeperLedgerRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/shopkeeper/insights': {
+      id: '/app/shopkeeper/insights'
+      path: '/shopkeeper/insights'
+      fullPath: '/app/shopkeeper/insights'
+      preLoaderRoute: typeof AppShopkeeperInsightsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/shopkeeper/collections': {
+      id: '/app/shopkeeper/collections'
+      path: '/shopkeeper/collections'
+      fullPath: '/app/shopkeeper/collections'
+      preLoaderRoute: typeof AppShopkeeperCollectionsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/customer/voice': {
@@ -213,7 +329,13 @@ interface AppRouteChildren {
   AppCustomerRepaymentsRoute: typeof AppCustomerRepaymentsRoute
   AppCustomerTrustRoute: typeof AppCustomerTrustRoute
   AppCustomerVoiceRoute: typeof AppCustomerVoiceRoute
+  AppShopkeeperCollectionsRoute: typeof AppShopkeeperCollectionsRoute
+  AppShopkeeperInsightsRoute: typeof AppShopkeeperInsightsRoute
+  AppShopkeeperLedgerRoute: typeof AppShopkeeperLedgerRoute
+  AppShopkeeperOrdersRoute: typeof AppShopkeeperOrdersRoute
+  AppShopkeeperProcurementRoute: typeof AppShopkeeperProcurementRoute
   AppCustomerIndexRoute: typeof AppCustomerIndexRoute
+  AppShopkeeperIndexRoute: typeof AppShopkeeperIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -222,7 +344,13 @@ const AppRouteChildren: AppRouteChildren = {
   AppCustomerRepaymentsRoute: AppCustomerRepaymentsRoute,
   AppCustomerTrustRoute: AppCustomerTrustRoute,
   AppCustomerVoiceRoute: AppCustomerVoiceRoute,
+  AppShopkeeperCollectionsRoute: AppShopkeeperCollectionsRoute,
+  AppShopkeeperInsightsRoute: AppShopkeeperInsightsRoute,
+  AppShopkeeperLedgerRoute: AppShopkeeperLedgerRoute,
+  AppShopkeeperOrdersRoute: AppShopkeeperOrdersRoute,
+  AppShopkeeperProcurementRoute: AppShopkeeperProcurementRoute,
   AppCustomerIndexRoute: AppCustomerIndexRoute,
+  AppShopkeeperIndexRoute: AppShopkeeperIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
