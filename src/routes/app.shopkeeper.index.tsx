@@ -48,11 +48,29 @@ function ShopHome() {
         </div>
 
         <Link
-          to="/app/shopkeeper/insights"
-          className="mt-4 flex items-center justify-between rounded-2xl border border-emerald/30 bg-emerald/10 p-4"
+          to="/app/shopkeeper/live"
+          className="mt-4 flex items-center justify-between rounded-2xl border border-emerald/40 bg-gradient-to-r from-emerald/20 to-emerald/5 p-4"
         >
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald/20 text-emerald">
+              <Radio className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-display text-[14px] font-semibold">Live call monitor</div>
+              <div className="text-[11px] text-ink-muted">Realtime transcript · AI recommendation</div>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald/15 px-2 py-0.5 text-[10px] font-semibold text-emerald">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald animate-pulse" /> READY
+          </span>
+        </Link>
+
+        <Link
+          to="/app/shopkeeper/insights"
+          className="mt-2 flex items-center justify-between rounded-2xl border border-border bg-elevated/60 p-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald/10 text-emerald">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>

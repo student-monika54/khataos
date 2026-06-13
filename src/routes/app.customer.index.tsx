@@ -41,19 +41,27 @@ function CustomerHome() {
           <StatCard label="Outstanding" value={formatINR(me.outstanding)} hint={me.dueDate ? `Due ${new Date(me.dueDate).toLocaleDateString("en-IN", { day:"numeric", month:"short" })}` : "—"} />
         </div>
 
-        {/* Primary CTA */}
+        {/* Primary CTA — Call */}
         <Link
-          to="/app/customer/voice"
+          to="/app/customer/call"
           className="mt-5 flex items-center justify-between rounded-2xl border border-emerald/40 bg-gradient-to-r from-emerald to-emerald/80 px-5 py-4 text-[#06140b] shadow-[0_10px_40px_-10px_rgba(34,197,94,0.5)]"
         >
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] opacity-70">Voice Agent</div>
-            <div className="font-display text-lg font-semibold">Talk to KhataOS</div>
-            <div className="text-[12px] opacity-80">हिन्दी · English · ಕನ್ನಡ · Hinglish</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] opacity-70">Live Call</div>
+            <div className="font-display text-lg font-semibold">Call KhataOS</div>
+            <div className="text-[12px] opacity-80">Voice AI · Commerce + Financial Brain</div>
           </div>
           <div className="grid h-12 w-12 place-items-center rounded-full bg-[#06140b] text-emerald">
-            <Mic className="h-5 w-5" />
+            <Phone className="h-5 w-5" />
           </div>
+        </Link>
+
+        <Link to="/app/customer/voice" className="mt-2 flex items-center justify-between rounded-2xl border border-border bg-elevated/60 px-4 py-3">
+          <div>
+            <div className="text-[12px] font-semibold">Quick voice query</div>
+            <div className="text-[11px] text-ink-muted">Tap to speak · हिन्दी · English · ಕನ್ನಡ</div>
+          </div>
+          <Mic className="h-4 w-4 text-emerald" />
         </Link>
       </div>
 
