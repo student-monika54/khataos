@@ -41,6 +41,23 @@ export const Route = createFileRoute("/api/khataos/calls")({
         }
         if (body.action === "speak" && body.callId && body.text && body.customer) {
           patchCall(body.callId, { state: "thinking" });
+
+          // Stage 1: publish PENDING order before financial brain runs.
+          const preCommerce = runCommerceBrainRules(body.text);
+          const isOrderIntent = preCommerce.intent === "KHATA_ORDER" || preCommerce.intent === "CREDIT_REQUEST";
+          const orderId = `lo_${body.callId}_${Date.now()}`;
+          if (isOrderIntent && preCommerce.items.length > 0) {
+            publishLiveOrder({
+              id: orderId, callId: body.callId,
+              customerId: body.customer.id, customerName: body.customer.name, phone: body.customer.phone,
+              items: preCommerce.items, amount: preCommerce.amount,
+              trustScore: body.customer.trustScore, outstanding: body.customer.outstanding,
+              creditLimit: body.customer.creditLimit,
+              stage: "checking_credit",
+              createdAt: Date.now(), updatedAt: Date.now(),
+            });
+          }
+
           const result = await processTurn(body.text, {
             customerId: body.customer.id,
             customerName: body.customer.name,
@@ -49,6 +66,22 @@ export const Route = createFileRoute("/api/khataos/calls")({
             creditLimit: body.customer.creditLimit,
             reliability: body.customer.reliability,
           });
+
+          if (isOrderIntent && preCommerce.items.length > 0) {
+            const decision = result.financial.decision === "info" ? undefined : result.financial.decision;
+            const stage = decision === "approve" ? "ready_for_fulfillment"
+              : decision === "reject" ? "rejected"
+              : decision === "conditional" ? "conditional"
+              : "ready_for_fulfillment";
+            // Small artificial delay so the UI can render the "checking credit"
+            // stage before flipping to the final decision.
+            setTimeout(() => patchLiveOrder(orderId, {
+              stage, decision,
+              amount: result.amount ?? preCommerce.amount,
+              reasoning: result.financial.reasoning,
+            }), 700);
+          }
+
           result.turns.forEach((t) => appendTurnServer(body.callId!, t));
           patchCall(body.callId, {
             state: "responding",
