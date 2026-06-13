@@ -3,12 +3,19 @@ import { useSyncExternalStore } from "react";
 
 export type CallState =
   | "incoming" | "connecting" | "listening" | "thinking"
-  | "generating" | "responding" | "completed" | "failed" | "escalated";
+  | "generating" | "responding" | "ending" | "completed" | "failed" | "escalated";
 
 export type Intent =
-  | "BALANCE_INQUIRY" | "KHATA_ORDER" | "CREDIT_REQUEST"
+  | "END_CALL"
+  | "GREETING"
+  | "BALANCE_INQUIRY"
+  | "KHATA_ORDER"
+  | "CREDIT_REQUEST"
+  | "PAYMENT_CONFIRMATION"
+  | "PAYMENT_PROMISE"
   | "REPAYMENT" | "SETTLEMENT" | "TRUST_INQUIRY"
-  | "COLLECTIONS_FOLLOWUP" | "ESCALATE" | "GREETING" | "UNKNOWN";
+  | "COLLECTIONS_FOLLOWUP" | "ESCALATE"
+  | "GENERAL_HELP" | "UNKNOWN";
 
 export type AgentName =
   | "CreditAgent" | "TrustAgent" | "CollectionsAgent"
@@ -133,11 +140,15 @@ export const INTENT_TO_AGENT: Record<Intent, AgentName> = {
   KHATA_ORDER: "CreditAgent",
   CREDIT_REQUEST: "CreditAgent",
   REPAYMENT: "CollectionsAgent",
+  PAYMENT_CONFIRMATION: "CollectionsAgent",
+  PAYMENT_PROMISE: "CollectionsAgent",
   SETTLEMENT: "CollectionsAgent",
   COLLECTIONS_FOLLOWUP: "CollectionsAgent",
   TRUST_INQUIRY: "TrustAgent",
   ESCALATE: "WorkingCapitalAgent",
   GREETING: "InsightsAgent",
+  END_CALL: "InsightsAgent",
+  GENERAL_HELP: "InsightsAgent",
   UNKNOWN: "InsightsAgent",
 };
 
