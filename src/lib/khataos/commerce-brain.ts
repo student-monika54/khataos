@@ -70,6 +70,7 @@ export async function runCommerceBrain(text: string): Promise<CommerceBrainOutpu
       amount: parsed.amount ?? rules.amount,
       rawText: text,
       confidence: 0.95,
+      endCall: parsed.intent === "END_CALL" || rules.endCall,
     };
   } catch {
     return rules;
