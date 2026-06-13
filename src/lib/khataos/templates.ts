@@ -1,6 +1,6 @@
 // Template Response Engine — deterministic, low-latency, multilingual replies.
-// Three locked languages: English (en), Hindi (hi), Kannada (kn).
-// Language is selected via IVR DTMF menu (1/2/3) and locked for the call.
+// Voice templates for English, Hindi, Kannada, Tamil and Telugu.
+// Sarvam auto-detects the caller language and we lock the reply language.
 // Hinglish kept only as alias for hi for backward compatibility.
 
 import type { Intent } from "./calls";
@@ -12,7 +12,7 @@ export type TemplateId =
   | "REPAYMENT_THANKS" | "PAYMENT_CONFIRMATION" | "PAYMENT_PROMISE"
   | "GENERAL_HELP" | "END_CALL" | "ESCALATION" | "FALLBACK";
 
-export type TemplateLang = "en" | "hi" | "hinglish" | "kn";
+export type TemplateLang = "en" | "hi" | "hinglish" | "kn" | "ta" | "te";
 
 export type TemplateVars = {
   customerName?: string;
@@ -101,7 +101,49 @@ const kn: Bag = {
   FALLBACK: () => `Naanu balance, credit, paavati mattu khaate maahitiyalli sahaaya maadabahudu. Nimage enu beku?`,
 };
 
-const T: Record<TemplateLang, Bag> = { en, hi, hinglish, kn };
+const ta: Bag = {
+  GREETING: () => `KhataOS-க்கு வரவேற்கிறோம். இன்று எப்படி உதவலாம்?`,
+  BALANCE_INQUIRY: (v) => `உங்கள் தற்போதைய நிலுவை ${INR(v.outstanding)}.`,
+  CREDIT_APPROVAL: (v) => `${INR(v.amount)} கடன் கோரிக்கை அங்கீகரிக்கப்பட்டது.`,
+  CREDIT_CONDITIONAL: (v) => `இந்த வாரம் ${INR(v.outstanding)} செலுத்தினால் ${INR(v.amount)} அங்கீகரிக்க முடியும்.`,
+  CREDIT_REJECTION: () => `மன்னிக்கவும், இப்போது உங்கள் கடன் கோரிக்கையை அங்கீகரிக்க முடியாது.`,
+  ORDER_CONFIRMATION: (v) => v.items
+    ? `இந்த பொருட்களை உங்கள் கணக்கில் சேர்த்துவிட்டேன்: ${v.items}.`
+    : `உங்கள் ஆர்டர் கணக்கில் சேர்க்கப்பட்டது.`,
+  PAYMENT_REMINDER: (v) => `உங்களுக்கு தற்போது ${INR(v.outstanding)} நிலுவை உள்ளது.`,
+  SETTLEMENT_OFFER: () => `உங்கள் கட்டண வாக்குறுதி பதிவு செய்யப்பட்டது.`,
+  COLLECTIONS_FOLLOWUP: (v) => `உங்களுக்கு தற்போது ${INR(v.outstanding)} நிலுவை உள்ளது.`,
+  REPAYMENT_THANKS: () => `உங்கள் கட்டணம் வெற்றிகரமாக பதிவு செய்யப்பட்டது.`,
+  PAYMENT_CONFIRMATION: () => `உங்கள் கட்டணம் வெற்றிகரமாக பதிவு செய்யப்பட்டது.`,
+  PAYMENT_PROMISE: () => `உங்கள் கட்டண வாக்குறுதி பதிவு செய்யப்பட்டது.`,
+  GENERAL_HELP: () => `நிலுவை, கடன், கட்டணம் மற்றும் கணக்கு தகவல்களில் உதவ முடியும்.`,
+  END_CALL: () => `KhataOS-க்கு அழைத்ததற்கு நன்றி. இனிய நாள்.`,
+  ESCALATION: () => `உங்களை கடைக்காரருடன் இணைக்கிறேன்.`,
+  FALLBACK: () => `நிலுவை, கடன், கட்டணம் மற்றும் கணக்கு தகவல்களில் உதவ முடியும். என்ன வேண்டும்?`,
+};
+
+const te: Bag = {
+  GREETING: () => `KhataOS కు స్వాగతం. ఈ రోజు ఎలా సహాయం చేయగలను?`,
+  BALANCE_INQUIRY: (v) => `మీ ప్రస్తుత బకాయి ${INR(v.outstanding)}.`,
+  CREDIT_APPROVAL: (v) => `${INR(v.amount)} క్రెడిట్ అభ్యర్థన ఆమోదించబడింది.`,
+  CREDIT_CONDITIONAL: (v) => `ఈ వారం ${INR(v.outstanding)} చెల్లిస్తే ${INR(v.amount)} ఆమోదించగలను.`,
+  CREDIT_REJECTION: () => `క్షమించండి, ప్రస్తుతం మీ క్రెడిట్ అభ్యర్థన ఆమోదించలేం.`,
+  ORDER_CONFIRMATION: (v) => v.items
+    ? `ఈ వస్తువులను మీ ఖాతాలో చేర్చాను: ${v.items}.`
+    : `మీ ఆర్డర్ మీ ఖాతాలో చేర్చబడింది.`,
+  PAYMENT_REMINDER: (v) => `మీకు ప్రస్తుతం ${INR(v.outstanding)} బకాయి ఉంది.`,
+  SETTLEMENT_OFFER: () => `మీ చెల్లింపు వాగ్దానం నమోదు చేయబడింది.`,
+  COLLECTIONS_FOLLOWUP: (v) => `మీకు ప్రస్తుతం ${INR(v.outstanding)} బకాయి ఉంది.`,
+  REPAYMENT_THANKS: () => `మీ చెల్లింపు విజయవంతంగా నమోదు చేయబడింది.`,
+  PAYMENT_CONFIRMATION: () => `మీ చెల్లింపు విజయవంతంగా నమోదు చేయబడింది.`,
+  PAYMENT_PROMISE: () => `మీ చెల్లింపు వాగ్దానం నమోదు చేయబడింది.`,
+  GENERAL_HELP: () => `బకాయి, క్రెడిట్, చెల్లింపు మరియు ఖాతా సమాచారంలో సహాయం చేయగలను.`,
+  END_CALL: () => `KhataOS కు కాల్ చేసినందుకు ధన్యవాదాలు. మంచి రోజు.`,
+  ESCALATION: () => `మీను దుకాణదారునితో కలుపుతున్నాను.`,
+  FALLBACK: () => `బకాయి, క్రెడిట్, చెల్లింపు మరియు ఖాతా సమాచారంలో సహాయం చేయగలను. మీకు ఏమి కావాలి?`,
+};
+
+const T: Record<TemplateLang, Bag> = { en, hi, hinglish, kn, ta, te };
 
 export function pickTemplate(intent: Intent, decision?: "approve" | "reject" | "conditional"): TemplateId {
   switch (intent) {
@@ -130,6 +172,8 @@ export function languageToTemplateLang(lang: string): TemplateLang {
     case "Hindi": return "hi";
     case "Hinglish": return "hi";
     case "Kannada": return "kn";
+    case "Tamil": return "ta";
+    case "Telugu": return "te";
     case "English": return "en";
     default: return "en";
   }

@@ -4,8 +4,8 @@
 //   Twilio <Record> finishes ─▶ POST /api/public/twilio/record
 //     1. Fetch the recording audio from Twilio (basic auth via env or
 //        the Lovable Twilio connector gateway).
-//     2. Sarvam saaras:v2.5 STT-translate ─▶ English transcript + detected
-//        source language (en-IN | hi-IN | kn-IN).
+//     2. Sarvam saaras:v3 STT-translate ─▶ English transcript + detected
+//        source language (en-IN | hi-IN | kn-IN | ta-IN | te-IN).
 //     3. Existing Commerce Brain + Financial Brain (orchestrator.processTurn)
 //        produces the reply text. UI / order pipeline unchanged.
 //     4. Sarvam TTS synthesises the reply in the customer's language.
@@ -24,7 +24,7 @@ import {
 } from "@/lib/khataos/sarvam.server";
 import { putTts } from "@/lib/khataos/tts-cache.server";
 import { processTurn } from "@/lib/khataos/orchestrator.server";
-import { publishLiveOrder } from "@/lib/khataos/live-orders.server";
+import { patchLiveOrder, publishLiveOrder } from "@/lib/khataos/live-orders.server";
 
 function twiml(xml: string) {
   return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response>${xml}</Response>`, {
@@ -35,14 +35,24 @@ function escapeXml(s: string) {
   return s.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]!));
 }
 
-function langToTemplate(code: SarvamLangCode): "en" | "hi" | "kn" {
-  return code === "hi-IN" ? "hi" : code === "kn-IN" ? "kn" : "en";
+function langToTemplate(code: SarvamLangCode): "en" | "hi" | "kn" | "ta" | "te" {
+  return code === "hi-IN" ? "hi" : code === "kn-IN" ? "kn" : code === "ta-IN" ? "ta" : code === "te-IN" ? "te" : "en";
+}
+function langToLabel(code: SarvamLangCode): "English" | "Hindi" | "Kannada" | "Tamil" | "Telugu" {
+  return code === "hi-IN" ? "Hindi" : code === "kn-IN" ? "Kannada" : code === "ta-IN" ? "Tamil" : code === "te-IN" ? "Telugu" : "English";
 }
 function langToTwilioVoice(code: SarvamLangCode): { voice: string; locale: string } {
   // Fallback only when Sarvam TTS itself fails.
   if (code === "hi-IN") return { voice: "Polly.Aditi", locale: "hi-IN" };
   if (code === "kn-IN") return { voice: "Google.kn-IN-Standard-A", locale: "kn-IN" };
+  if (code === "ta-IN") return { voice: "Google.ta-IN-Standard-A", locale: "ta-IN" };
+  if (code === "te-IN") return { voice: "Google.te-IN-Standard-A", locale: "te-IN" };
   return { voice: "Polly.Raveena", locale: "en-IN" };
+}
+
+function isAuthError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /invalid_api_key|missing authentication|403|SARVAM_API_KEY/i.test(msg);
 }
 
 // Fetch the Twilio recording bytes. Tries direct basic-auth first
@@ -90,8 +100,8 @@ function recordTwiml(base: string, cid: string): string {
   return `
     <Record action="${base}/api/public/twilio/record?cid=${encodeURIComponent(cid)}"
             method="POST"
-            maxLength="15"
-            timeout="2"
+            maxLength="20"
+            timeout="3"
             playBeep="false"
             trim="trim-silence"
             finishOnKey="#" />
@@ -151,8 +161,11 @@ export const Route = createFileRoute("/api/public/twilio/record")({
           sttLatency = stt.latencyMs;
         } catch (err) {
           console.error("[Sarvam pipeline] STT error", err);
+          if (isAuthError(err)) {
+            patchCall(cid, { state: "failed", summary: "Sarvam API key rejected authentication." });
+          }
           return twiml(`
-            ${fallbackSayTwiml("Sorry, I could not understand. Please try again.", "en-IN")}
+            ${fallbackSayTwiml(isAuthError(err) ? "KhataOS speech is not configured correctly. Please update the Sarvam API key." : "Sorry, I could not understand. Please try again.", "en-IN")}
             ${recordTwiml(base, cid)}
           `);
         }
@@ -166,8 +179,8 @@ export const Route = createFileRoute("/api/public/twilio/record")({
 
         appendTurnServer(cid, {
           role: "customer", at: Date.now(), text: transcript, rawTranscript: transcript,
-          language: detectedLang === "hi-IN" ? "Hindi" : detectedLang === "kn-IN" ? "Kannada" : "English",
-          pipelineStage: "stt", sttProvider: "deepgram", deepgramModel: "sarvam:saaras-v2.5",
+          language: langToLabel(detectedLang),
+          pipelineStage: "stt", sttProvider: "sarvam", deepgramModel: "sarvam:saaras-v3:translate",
           deepgramDetectedLanguage: detectedLang, deepgramLatencyMs: sttLatency,
         });
 
@@ -179,7 +192,7 @@ export const Route = createFileRoute("/api/public/twilio/record")({
           outstanding: 1850,
           creditLimit: 5000,
           reliability: 91,
-          forcedLanguage: detectedLang === "hi-IN" ? "Hindi" : detectedLang === "kn-IN" ? "Kannada" : "English",
+          forcedLanguage: langToLabel(detectedLang),
           forcedTemplateLang: langToTemplate(detectedLang),
         });
 
@@ -191,21 +204,25 @@ export const Route = createFileRoute("/api/public/twilio/record")({
         // shopkeeper dashboard updates immediately, before the call ends.
         if (ctxOut.commerce.intent === "KHATA_ORDER" && ctxOut.commerce.items.length > 0) {
           const orderId = `lo_${cid}_${Date.now()}`;
-          const stage = ctxOut.financial.decision === "approve" ? "ready_for_fulfillment"
-            : ctxOut.financial.decision === "reject" ? "rejected"
-            : ctxOut.financial.decision === "conditional" ? "conditional"
-            : "checking_credit";
           publishLiveOrder({
             id: orderId, callId: cid,
             customerId: call.customerId, customerName: call.customerName, phone: call.phone,
             items: ctxOut.commerce.items,
             amount: ctxOut.amount ?? 0,
             trustScore: 82, outstanding: 1850, creditLimit: 5000,
+            stage: "processing",
+            language: ctxOut.commerce.language,
+            createdAt: Date.now(), updatedAt: Date.now(),
+          });
+          const stage = ctxOut.financial.decision === "approve" ? "ready_for_fulfillment"
+            : ctxOut.financial.decision === "reject" ? "rejected"
+            : ctxOut.financial.decision === "conditional" ? "conditional"
+            : "checking_credit";
+          patchLiveOrder(orderId, {
             stage,
             decision: ctxOut.financial.decision === "info" ? undefined : ctxOut.financial.decision,
             reasoning: ctxOut.financial.reasoning,
             language: ctxOut.commerce.language,
-            createdAt: Date.now(), updatedAt: Date.now(),
           });
         }
 
