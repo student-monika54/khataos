@@ -57,6 +57,8 @@ export async function processTurn(text: string, ctx: ConversationContext) {
   });
 
   const tplId = pickTemplate(commerce.intent, financial.decision === "info" ? undefined : financial.decision);
+  const noIntentMatch = commerce.intent === "UNKNOWN";
+  const fallback = tplId === "FALLBACK";
 
   const amount = financial.recommendedAmount ?? requestedAmount;
   const newOutstanding =
@@ -79,6 +81,21 @@ export async function processTurn(text: string, ctx: ConversationContext) {
     reason: financial.reasoning,
   }, lang);
 
+  // Structured pipeline trace — surfaces in server logs for every turn.
+  // Lets us see exactly which stage produced UNKNOWN / FALLBACK in production.
+  console.log("[KhataOS pipeline]", JSON.stringify({
+    rawTranscript: text,
+    detectedLanguage: commerce.language,
+    languageConfidence: +commerce.languageConfidence.toFixed(2),
+    detectedIntent: commerce.intent,
+    intentConfidence: +commerce.intentConfidence.toFixed(2),
+    selectedAgent: financial.agent,
+    selectedTemplate: `${lang}.${tplId}`,
+    decision: financial.decision,
+    noIntentMatch,
+    fallback,
+  }));
+
   const turns: TranscriptTurn[] = [
     {
       role: "customer", text, at: t0,
@@ -87,6 +104,9 @@ export async function processTurn(text: string, ctx: ConversationContext) {
       languageConfidence: commerce.languageConfidence,
       intentConfidence: commerce.intentConfidence,
       items: commerce.items,
+      rawTranscript: text,
+      noIntentMatch,
+      pipelineStage: "commerce",
     },
     {
       role: "agent", text: reply, at: Date.now(),
@@ -97,8 +117,11 @@ export async function processTurn(text: string, ctx: ConversationContext) {
       language: commerce.language,
       languageConfidence: commerce.languageConfidence,
       intentConfidence: commerce.intentConfidence,
+      fallback,
+      noIntentMatch,
+      pipelineStage: "template",
     },
   ];
 
-  return { commerce, financial, templateId: tplId, templateLang: lang, reply, turns, newOutstanding, amount, endCall: false };
+  return { commerce, financial, templateId: tplId, templateLang: lang, reply, turns, newOutstanding, amount, endCall: false, fallback, noIntentMatch };
 }
