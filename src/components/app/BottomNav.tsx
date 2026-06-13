@@ -1,12 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-  Home, MessageCircle, CreditCard, Wallet, Shield,
-  LayoutDashboard, Package, Users, AlertTriangle, Sparkles, Receipt,
+  Home, Phone, CreditCard, Wallet, Shield,
+  LayoutDashboard, Radio, History, Sparkles, Settings,
 } from "lucide-react";
 
 const customerNav = [
   { to: "/app/customer", label: "Home", icon: Home, exact: true },
-  { to: "/app/customer/voice", label: "Talk", icon: MessageCircle },
+  { to: "/app/customer/call", label: "Call", icon: Phone },
   { to: "/app/customer/credit", label: "Credit", icon: CreditCard },
   { to: "/app/customer/repayments", label: "Pay", icon: Wallet },
   { to: "/app/customer/trust", label: "Trust", icon: Shield },
@@ -14,11 +14,10 @@ const customerNav = [
 
 const shopNav = [
   { to: "/app/shopkeeper", label: "Home", icon: LayoutDashboard, exact: true },
-  { to: "/app/shopkeeper/orders", label: "Orders", icon: Package },
-  { to: "/app/shopkeeper/ledger", label: "Ledger", icon: Users },
-  { to: "/app/shopkeeper/collections", label: "Dues", icon: AlertTriangle },
+  { to: "/app/shopkeeper/live", label: "Live", icon: Radio },
+  { to: "/app/shopkeeper/calls", label: "Calls", icon: History },
   { to: "/app/shopkeeper/insights", label: "AI", icon: Sparkles },
-  { to: "/app/shopkeeper/procurement", label: "Stock", icon: Receipt },
+  { to: "/app/shopkeeper/settings", label: "Settings", icon: Settings },
 ];
 
 export function BottomNav() {
