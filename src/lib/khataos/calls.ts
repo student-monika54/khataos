@@ -125,6 +125,7 @@ function todayCall(): CallRecord[] {
 }
 
 let cache: CallRecord[] | null = null;
+let serverSnapshot: CallRecord[] | null = null;
 const listeners = new Set<() => void>();
 
 function read(): CallRecord[] {
@@ -147,7 +148,7 @@ export function useCalls<T>(selector: (s: CallRecord[]) => T): T {
   return useSyncExternalStore(
     (cb) => { listeners.add(cb); return () => listeners.delete(cb); },
     () => selector(read()),
-    () => selector(todayCall()),
+    () => selector(serverSnapshot ?? (serverSnapshot = todayCall())),
   );
 }
 
