@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useKhata, formatINR } from "@/lib/khataos/data";
 import { AppHeader, AppScreen, StatCard, Section } from "@/components/app/AppShell";
-import { ArrowUpRight, Sparkles, TrendingUp, Radio, AlertTriangle, Clock, Lightbulb, Package } from "lucide-react";
+import { ArrowUpRight, Sparkles, TrendingUp, Radio, AlertTriangle, Clock, Lightbulb, Package, Settings } from "lucide-react";
 import { LiveOrdersPanel } from "@/components/app/LiveOrdersPanel";
 
 export const Route = createFileRoute("/app/shopkeeper/")({
