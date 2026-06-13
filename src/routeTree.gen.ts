@@ -24,6 +24,7 @@ import { Route as AppCustomerVoiceRouteImport } from './routes/app.customer.voic
 import { Route as AppCustomerTrustRouteImport } from './routes/app.customer.trust'
 import { Route as AppCustomerRepaymentsRouteImport } from './routes/app.customer.repayments'
 import { Route as AppCustomerCreditRouteImport } from './routes/app.customer.credit'
+import { Route as ApiKhataosHealthRouteImport } from './routes/api/khataos.health'
 import { Route as ApiKhataosCallsRouteImport } from './routes/api/khataos.calls'
 import { Route as ApiPublicTwilioVoiceRouteImport } from './routes/api/public/twilio.voice'
 import { Route as ApiPublicTwilioStatusRouteImport } from './routes/api/public/twilio.status'
@@ -106,6 +107,11 @@ const AppCustomerCreditRoute = AppCustomerCreditRouteImport.update({
   path: '/customer/credit',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiKhataosHealthRoute = ApiKhataosHealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => ApiKhataosRoute,
+} as any)
 const ApiKhataosCallsRoute = ApiKhataosCallsRouteImport.update({
   id: '/calls',
   path: '/calls',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/api/khataos': typeof ApiKhataosRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
+  '/api/khataos/health': typeof ApiKhataosHealthRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/api/khataos': typeof ApiKhataosRouteWithChildren
   '/app': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
+  '/api/khataos/health': typeof ApiKhataosHealthRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/api/khataos': typeof ApiKhataosRouteWithChildren
   '/app/': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
+  '/api/khataos/health': typeof ApiKhataosHealthRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/api/khataos'
     | '/app/'
     | '/api/khataos/calls'
+    | '/api/khataos/health'
     | '/app/customer/credit'
     | '/app/customer/repayments'
     | '/app/customer/trust'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/api/khataos'
     | '/app'
     | '/api/khataos/calls'
+    | '/api/khataos/health'
     | '/app/customer/credit'
     | '/app/customer/repayments'
     | '/app/customer/trust'
@@ -239,6 +250,7 @@ export interface FileRouteTypes {
     | '/api/khataos'
     | '/app/'
     | '/api/khataos/calls'
+    | '/api/khataos/health'
     | '/app/customer/credit'
     | '/app/customer/repayments'
     | '/app/customer/trust'
@@ -371,6 +383,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomerCreditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/khataos/health': {
+      id: '/api/khataos/health'
+      path: '/health'
+      fullPath: '/api/khataos/health'
+      preLoaderRoute: typeof ApiKhataosHealthRouteImport
+      parentRoute: typeof ApiKhataosRoute
+    }
     '/api/khataos/calls': {
       id: '/api/khataos/calls'
       path: '/calls'
@@ -436,10 +455,12 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface ApiKhataosRouteChildren {
   ApiKhataosCallsRoute: typeof ApiKhataosCallsRoute
+  ApiKhataosHealthRoute: typeof ApiKhataosHealthRoute
 }
 
 const ApiKhataosRouteChildren: ApiKhataosRouteChildren = {
   ApiKhataosCallsRoute: ApiKhataosCallsRoute,
+  ApiKhataosHealthRoute: ApiKhataosHealthRoute,
 }
 
 const ApiKhataosRouteWithChildren = ApiKhataosRoute._addFileChildren(
@@ -457,3 +478,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
