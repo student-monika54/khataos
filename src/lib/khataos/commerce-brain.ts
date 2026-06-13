@@ -2,6 +2,7 @@
 // on demand. Falls back to deterministic rules if WebLLM is unavailable.
 
 import { runCommerceBrainRules, type CommerceBrainOutput } from "./commerce-brain-rules";
+import type { Intent } from "./calls";
 
 let engine: any = null;
 let loadPromise: Promise<any> | null = null;
@@ -47,6 +48,14 @@ const SYS = `You are the Commerce Brain on-device for KhataOS. Parse the custome
 {"intent":"END_CALL|GREETING|BALANCE_INQUIRY|KHATA_ORDER|CREDIT_REQUEST|PAYMENT_CONFIRMATION|PAYMENT_PROMISE|REPAYMENT|SETTLEMENT|TRUST_INQUIRY|COLLECTIONS_FOLLOWUP|ESCALATE|GENERAL_HELP|UNKNOWN","language":"Hindi|English|Hinglish|Kannada","items":[{"name":string,"quantity":string}],"amount":number|null}
 No prose, no markdown. quantity like "2kg" "1L" "1pack".`;
 
+const VALID_INTENTS = new Set<Intent>([
+  "END_CALL", "GREETING", "BALANCE_INQUIRY", "KHATA_ORDER", "CREDIT_REQUEST",
+  "PAYMENT_CONFIRMATION", "PAYMENT_PROMISE", "REPAYMENT", "SETTLEMENT", "TRUST_INQUIRY",
+  "COLLECTIONS_FOLLOWUP", "ESCALATE", "GENERAL_HELP", "UNKNOWN",
+]);
+
+const VALID_LANGUAGES = new Set<CommerceBrainOutput["language"]>(["Hindi", "English", "Hinglish", "Kannada", "Tamil", "Telugu"]);
+
 export async function runCommerceBrain(text: string): Promise<CommerceBrainOutput> {
   const rules = runCommerceBrainRules(text);
   if (!engine) return rules;
@@ -63,8 +72,10 @@ export async function runCommerceBrain(text: string): Promise<CommerceBrainOutpu
     const m = raw.match(/\{[\s\S]*\}/);
     if (!m) return rules;
     const parsed = JSON.parse(m[0]);
-    const parsedIntent = typeof parsed.intent === "string" ? parsed.intent : undefined;
-    const parsedLanguage = typeof parsed.language === "string" ? parsed.language : undefined;
+    const parsedIntent = typeof parsed.intent === "string" && VALID_INTENTS.has(parsed.intent as Intent) ? parsed.intent as Intent : undefined;
+    const parsedLanguage = typeof parsed.language === "string" && VALID_LANGUAGES.has(parsed.language as CommerceBrainOutput["language"])
+      ? parsed.language as CommerceBrainOutput["language"]
+      : undefined;
     const intent = rules.intent !== "UNKNOWN" || rules.endCall ? rules.intent : (parsedIntent ?? rules.intent);
     return {
       intent,
