@@ -226,7 +226,10 @@ function CallScreen() {
             </div>
           )}
         </div>
-        <div className="flex items-center justify-around px-8 pb-16">
+        <div className="px-5 pb-6">
+          <TwilioDialer defaultTo={me.phone?.startsWith("+") ? me.phone : ""} />
+        </div>
+        <div className="flex items-center justify-around px-8 pb-10">
           <button onClick={decline} className="grid h-16 w-16 place-items-center rounded-full bg-destructive text-white">
             <PhoneOff className="h-7 w-7" />
           </button>
