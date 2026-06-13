@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { motion } from "framer-motion";
 import { Mic, Brain, Zap, ArrowRight } from "lucide-react";
 
@@ -35,9 +36,8 @@ export function HowItWorks() {
 
         <div className="mt-14 grid items-stretch gap-6 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:gap-4">
           {steps.map((s, i) => (
-            <>
+            <Fragment key={s.n}>
               <motion.div
-                key={s.n}
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -60,14 +60,11 @@ export function HowItWorks() {
                 </p>
               </motion.div>
               {i < steps.length - 1 && (
-                <div
-                  key={`arrow-${i}`}
-                  className="hidden items-center justify-center lg:flex"
-                >
+                <div className="hidden items-center justify-center lg:flex">
                   <ArrowRight className="h-5 w-5 text-ink-muted/60" />
                 </div>
               )}
-            </>
+            </Fragment>
           ))}
         </div>
       </div>
