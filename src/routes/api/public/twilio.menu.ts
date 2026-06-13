@@ -8,7 +8,7 @@ import { getCall, patchCall, putCall, appendTurnServer } from "@/lib/khataos/cal
 import { renderTemplate } from "@/lib/khataos/templates";
 import {
   codeToLanguage, codeToTemplateLang, isLangCode, voiceForCode,
-  sttLocaleForCode, changeLangHint, type LangCode,
+  sttLocaleForCode, sttModelForCode, changeLangHint, type LangCode,
 } from "@/lib/khataos/ivr";
 
 function twiml(xml: string) {
@@ -93,7 +93,7 @@ export const Route = createFileRoute("/api/public/twilio/menu")({
           <Say voice="${v.voice}" language="${v.locale}">${escapeXml(greeting)}</Say>
           <Gather input="speech dtmf" numDigits="1" speechTimeout="auto" language="${stt}"
                   action="${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}"
-                  method="POST" speechModel="experimental_conversations">
+                  method="POST" speechModel="${sttModelForCode(code)}">
             <Say voice="${v.voice}" language="${v.locale}">${escapeXml(hint)}</Say>
           </Gather>
           <Redirect method="POST">${base}/api/public/twilio/gather?cid=${encodeURIComponent(cid)}&amp;lang=${code}</Redirect>

@@ -46,6 +46,13 @@ export function sttLocaleForCode(code: LangCode): string {
   }
 }
 
+// Twilio speechModel. `experimental_conversations` is English-only —
+// using it with hi-IN / kn-IN breaks transcription. Use the default
+// model for non-English locales so STT actually runs.
+export function sttModelForCode(code: LangCode): string {
+  return code === "en" ? "experimental_conversations" : "default";
+}
+
 // Localised "press 9 to change language" footer prompt.
 export function changeLangHint(code: LangCode): string {
   switch (code) {

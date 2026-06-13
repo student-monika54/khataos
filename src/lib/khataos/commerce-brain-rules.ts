@@ -194,20 +194,52 @@ function extractAmount(t: string): number | undefined {
   return undefined;
 }
 
-function extractItems(t: string): { name: string; quantity: string }[] {
-  const lower = t.toLowerCase();
-  const out: { name: string; quantity: string }[] = [];
+// Multi-item extraction. The utterance is split on conjunctions/commas
+// ("and", "aur", "mattu", ",", "&") so each segment contributes at most
+// one quantity+item pair. We then iterate every dictionary key per
+// segment, allowing utterances like:
+//   "2kg atta and 1 litre oil"
+//   "Add rice, sugar and oil"
+//   "Do kilo atta aur ek litre tel khate mein daal do"
+// to yield the full list of items.
+const SEGMENT_SPLIT = /\s*(?:,|;|\band\b|\baur\b|\bmattu\b|\bऔर\b|\bಮತ್ತು\b|&|\+)\s*/i;
+const WEIGHT_ITEMS = /atta|aata|flour|rice|chawal|dal|daal|sugar|chini|cheeni|salt|namak/i;
+const VOLUME_ITEMS = /oil|tel|milk|doodh/i;
+
+function extractFromSegment(seg: string, out: { name: string; quantity: string }[], seen: Set<string>) {
+  const lower = seg.toLowerCase();
+  const numAlt = Object.keys(NUM_WORDS).join("|");
   for (const [k, v] of Object.entries(ITEM_DICT)) {
-    const re = new RegExp(`(\\d+(?:\\.\\d+)?\\s?(?:kg|kilo|litre|liter|l|g|pack|packet)?|${Object.keys(NUM_WORDS).join("|")})?\\s*${k}`, "i");
+    const re = new RegExp(
+      `(\\d+(?:\\.\\d+)?\\s?(?:kg|kilo|litre|liter|l|g|gram|pack|packet)?|${numAlt})?\\s*\\b${k}\\b`,
+      "i",
+    );
     const m = lower.match(re);
-    if (m) {
-      let qty = (m[1] ?? "1").trim();
-      if (NUM_WORDS[qty]) qty = String(NUM_WORDS[qty]);
-      if (/^\d+$/.test(qty) && /kilo|kg|atta|rice|dal|sugar|flour/.test(k + " " + lower)) qty += "kg";
-      if (/oil|tel|milk|doodh/.test(k) && /^\d+$/.test(qty)) qty += "L";
-      out.push({ name: v, quantity: qty });
+    if (!m) continue;
+    if (seen.has(v)) continue;
+    let qty = (m[1] ?? "").trim();
+    if (!qty) qty = "1";
+    if (NUM_WORDS[qty.toLowerCase()]) qty = String(NUM_WORDS[qty.toLowerCase()]);
+    // Append a sensible unit when only a bare number is given.
+    if (/^\d+$/.test(qty)) {
+      if (WEIGHT_ITEMS.test(k)) qty += "kg";
+      else if (VOLUME_ITEMS.test(k)) qty += "L";
     }
+    // Normalise spacing: "2 kg" → "2kg", "1 litre" → "1 litre"
+    qty = qty.replace(/\s+/g, " ").trim();
+    seen.add(v);
+    out.push({ name: v, quantity: qty });
   }
+}
+
+function extractItems(t: string): { name: string; quantity: string }[] {
+  const out: { name: string; quantity: string }[] = [];
+  const seen = new Set<string>();
+  const segments = t.split(SEGMENT_SPLIT).map((s) => s.trim()).filter(Boolean);
+  for (const seg of segments) extractFromSegment(seg, out, seen);
+  // Fallback: if nothing was split (single segment) but multiple items
+  // still co-occur, the iteration above already found them.
+  if (out.length === 0) extractFromSegment(t, out, seen);
   return out;
 }
 

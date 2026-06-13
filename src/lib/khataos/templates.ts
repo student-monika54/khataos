@@ -39,7 +39,9 @@ const en: Bag = {
   CREDIT_APPROVAL: (v) => `Your credit request for ${INR(v.amount)} has been approved.`,
   CREDIT_CONDITIONAL: (v) => `I can approve ${INR(v.amount)} if you settle ${INR(v.outstanding)} this week.`,
   CREDIT_REJECTION: () => `Unfortunately your credit request cannot be approved at this time.`,
-  ORDER_CONFIRMATION: () => `Your order has been added to your khata account.`,
+  ORDER_CONFIRMATION: (v) => v.items
+    ? `I have added the following items to your khata: ${v.items}.`
+    : `Your order has been added to your khata account.`,
   PAYMENT_REMINDER: (v) => `You currently have an outstanding balance of ${INR(v.outstanding)}.`,
   SETTLEMENT_OFFER: () => `Your repayment commitment has been recorded.`,
   COLLECTIONS_FOLLOWUP: (v) => `You currently have an outstanding balance of ${INR(v.outstanding)}.`,
@@ -59,7 +61,9 @@ const hi: Bag = {
   CREDIT_APPROVAL: (v) => `${INR(v.amount)} ke liye aapka credit request approve kar diya gaya hai.`,
   CREDIT_CONDITIONAL: (v) => `${INR(v.amount)} approve kar sakta hoon agar aap is hafte ${INR(v.outstanding)} chuka denge.`,
   CREDIT_REJECTION: () => `Maaf kijiye, is samay aapka credit request approve nahi kiya ja sakta.`,
-  ORDER_CONFIRMATION: () => `Aapka order aapke khata mein jod diya gaya hai.`,
+  ORDER_CONFIRMATION: (v) => v.items
+    ? `Maine aapke khate mein nimnalikhit samaan jod diya hai: ${v.items}.`
+    : `Aapka order aapke khata mein jod diya gaya hai.`,
   PAYMENT_REMINDER: (v) => `Aap par vartamaan mein ${INR(v.outstanding)} ka baki balance hai.`,
   SETTLEMENT_OFFER: () => `Aapki payment commitment record kar li gayi hai.`,
   COLLECTIONS_FOLLOWUP: (v) => `Aap par vartamaan mein ${INR(v.outstanding)} ka baki balance hai.`,
@@ -82,7 +86,9 @@ const kn: Bag = {
   CREDIT_APPROVAL: (v) => `${INR(v.amount)} credit vinantiyannu anumodisalagide.`,
   CREDIT_CONDITIONAL: (v) => `${INR(v.amount)} anumodisabahudu, aadare ee vaara ${INR(v.outstanding)} paavatisabeku.`,
   CREDIT_REJECTION: () => `Kshamisi, ee samayadalli nimma credit vinantiyannu anumodisalu saadhyavilla.`,
-  ORDER_CONFIRMATION: () => `Nimma order annu nimma khaategе seerisalagide.`,
+  ORDER_CONFIRMATION: (v) => v.items
+    ? `Naanu ee vastugalannu nimma khaategе seerisidde: ${v.items}.`
+    : `Nimma order annu nimma khaategе seerisalagide.`,
   PAYMENT_REMINDER: (v) => `Nimma mele ${INR(v.outstanding)} baaki motta ide.`,
   SETTLEMENT_OFFER: () => `Nimma paavati baddhateyannu daakhalisalaagide.`,
   COLLECTIONS_FOLLOWUP: (v) => `Nimma mele ${INR(v.outstanding)} baaki motta ide.`,

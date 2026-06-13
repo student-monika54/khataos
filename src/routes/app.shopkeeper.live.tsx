@@ -186,9 +186,18 @@ function DebugCard({ turn, agentTurn }: { turn?: TranscriptTurn; agentTurn?: Tra
   }
   const noMatch = turn.noIntentMatch || turn.intent === "UNKNOWN";
   const fallbackFired = !!agentTurn?.fallback;
+  const lang = turn.language ?? "—";
+  const sttLocale = lang === "Hindi" || lang === "Hinglish" ? "hi-IN"
+    : lang === "Kannada" ? "kn-IN" : lang === "English" ? "en-IN" : "—";
+  const voiceLabel = lang === "Hindi" || lang === "Hinglish" ? "Polly.Aditi (hi-IN)"
+    : lang === "Kannada" ? "Google.kn-IN-Standard-A (kn-IN)"
+    : lang === "English" ? "Polly.Raveena (en-IN)" : "—";
+  const items = turn.items ?? [];
   const rows: [string, React.ReactNode][] = [
     ["Raw Transcript", <span className="text-ink">"{turn.rawTranscript ?? turn.text}"</span>],
-    ["Detected Language", <span className="text-ink">{turn.language ?? "—"}</span>],
+    ["Selected Language", <span className="text-ink">{lang}</span>],
+    ["Speech Recognition", <span className="text-ink">{sttLocale}</span>],
+    ["Voice Output", <span className="text-ink">{voiceLabel}</span>],
     ["Language Confidence", <span className="text-ink">{turn.languageConfidence != null ? `${Math.round(turn.languageConfidence * 100)}%` : "—"}</span>],
     ["Detected Intent", noMatch
       ? <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-amber-400 font-semibold">NO_INTENT_MATCH</span>
@@ -196,6 +205,9 @@ function DebugCard({ turn, agentTurn }: { turn?: TranscriptTurn; agentTurn?: Tra
     ["Intent Confidence", <span className="text-ink">{turn.intentConfidence != null ? `${Math.round(turn.intentConfidence * 100)}%` : "—"}</span>],
     ["Selected Agent", <span className="text-ink">{turn.agent ? AGENT_META[turn.agent].label : "—"}</span>],
     ["Selected Template", <span className="text-ink">{agentTurn?.templateId ? `${agentTurn.templateLang ?? "?"}.${agentTurn.templateId}` : "—"}</span>],
+    ["Order Items", items.length
+      ? <span className="text-ink">{items.map((i) => `${i.quantity} ${i.name}`).join(", ")} <span className="text-ink-subtle">({items.length})</span></span>
+      : <span className="text-ink-subtle">none</span>],
     ["Fallback Triggered", fallbackFired
       ? <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-amber-400 font-semibold">YES</span>
       : <span className="rounded-md bg-emerald/15 px-2 py-0.5 text-emerald font-semibold">NO</span>],
