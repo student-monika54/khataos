@@ -28,6 +28,7 @@ import { Route as AppCustomerTrustRouteImport } from './routes/app.customer.trus
 import { Route as AppCustomerRepaymentsRouteImport } from './routes/app.customer.repayments'
 import { Route as AppCustomerCreditRouteImport } from './routes/app.customer.credit'
 import { Route as AppCustomerCallRouteImport } from './routes/app.customer.call'
+import { Route as ApiKhataosOutboundRouteImport } from './routes/api/khataos.outbound'
 import { Route as ApiKhataosHealthRouteImport } from './routes/api/khataos.health'
 import { Route as ApiKhataosCallsRouteImport } from './routes/api/khataos.calls'
 import { Route as ApiPublicTwilioVoiceRouteImport } from './routes/api/public/twilio.voice'
@@ -131,6 +132,11 @@ const AppCustomerCallRoute = AppCustomerCallRouteImport.update({
   path: '/customer/call',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiKhataosOutboundRoute = ApiKhataosOutboundRouteImport.update({
+  id: '/outbound',
+  path: '/outbound',
+  getParentRoute: () => ApiKhataosRoute,
+} as any)
 const ApiKhataosHealthRoute = ApiKhataosHealthRouteImport.update({
   id: '/health',
   path: '/health',
@@ -164,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
+  '/api/khataos/outbound': typeof ApiKhataosOutboundRoute
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
@@ -189,6 +196,7 @@ export interface FileRoutesByTo {
   '/app': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
+  '/api/khataos/outbound': typeof ApiKhataosOutboundRoute
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
@@ -216,6 +224,7 @@ export interface FileRoutesById {
   '/app/': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
+  '/api/khataos/outbound': typeof ApiKhataosOutboundRoute
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
@@ -244,6 +253,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/api/khataos/calls'
     | '/api/khataos/health'
+    | '/api/khataos/outbound'
     | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/repayments'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/app'
     | '/api/khataos/calls'
     | '/api/khataos/health'
+    | '/api/khataos/outbound'
     | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/repayments'
@@ -295,6 +306,7 @@ export interface FileRouteTypes {
     | '/app/'
     | '/api/khataos/calls'
     | '/api/khataos/health'
+    | '/api/khataos/outbound'
     | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/repayments'
@@ -459,6 +471,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomerCallRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/khataos/outbound': {
+      id: '/api/khataos/outbound'
+      path: '/outbound'
+      fullPath: '/api/khataos/outbound'
+      preLoaderRoute: typeof ApiKhataosOutboundRouteImport
+      parentRoute: typeof ApiKhataosRoute
+    }
     '/api/khataos/health': {
       id: '/api/khataos/health'
       path: '/health'
@@ -540,11 +559,13 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 interface ApiKhataosRouteChildren {
   ApiKhataosCallsRoute: typeof ApiKhataosCallsRoute
   ApiKhataosHealthRoute: typeof ApiKhataosHealthRoute
+  ApiKhataosOutboundRoute: typeof ApiKhataosOutboundRoute
 }
 
 const ApiKhataosRouteChildren: ApiKhataosRouteChildren = {
   ApiKhataosCallsRoute: ApiKhataosCallsRoute,
   ApiKhataosHealthRoute: ApiKhataosHealthRoute,
+  ApiKhataosOutboundRoute: ApiKhataosOutboundRoute,
 }
 
 const ApiKhataosRouteWithChildren = ApiKhataosRoute._addFileChildren(
