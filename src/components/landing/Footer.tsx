@@ -1,3 +1,5 @@
+import logoAsset from "@/assets/khataos-logo.png.asset.json";
+
 const cols = [
   { title: "Product", links: ["Overview", "Architecture", "Agents", "Demo", "Roadmap"] },
   { title: "Technology", links: ["WebLLM", "On-Device AI", "Cloud Agents", "Security", "Privacy"] },
@@ -12,9 +14,11 @@ export function Footer() {
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald to-emerald/40">
-                <span className="font-display text-sm font-bold text-background">K</span>
-              </div>
+              <img
+                src={logoAsset.url}
+                alt="KhataOS"
+                className="h-8 w-8 rounded-lg object-cover"
+              />
               <span className="font-display text-lg font-semibold text-foreground">KhataOS</span>
             </div>
             <p className="mt-5 max-w-sm text-[13.5px] leading-relaxed text-ink-muted">
