@@ -8,7 +8,7 @@ import { getCall, patchCall, putCall, appendTurnServer } from "@/lib/khataos/cal
 import { renderTemplate } from "@/lib/khataos/templates";
 import {
   codeToLanguage, codeToTemplateLang, isLangCode, voiceForCode,
-  sttLocaleForCode, sttModelForCode, changeLangHint, type LangCode,
+  changeLangHint, type LangCode,
 } from "@/lib/khataos/ivr";
 
 function twiml(xml: string) {
