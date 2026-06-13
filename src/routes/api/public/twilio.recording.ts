@@ -137,18 +137,51 @@ export const Route = createFileRoute("/api/public/twilio/recording")({
           `);
         }
 
+        // ===== Stage 1: PENDING ORDER (publish before financial brain) =====
+        // Cheap commerce pre-pass so the shopkeeper sees the order appear
+        // immediately, before credit evaluation completes.
+        const preCommerce = runCommerceBrainRules(dg.transcript);
+        const orderId = `lo_${cid}_${Date.now()}`;
+        const isOrderIntent = preCommerce.intent === "KHATA_ORDER" || preCommerce.intent === "CREDIT_REQUEST";
+        const trustScore = 75, outstanding = 1500, creditLimit = 5000;
+        if (isOrderIntent && preCommerce.items.length > 0) {
+          publishLiveOrder({
+            id: orderId, callId: cid,
+            customerId: call.customerId, customerName: call.customerName, phone: call.phone,
+            items: preCommerce.items,
+            amount: preCommerce.amount,
+            trustScore, outstanding, creditLimit,
+            stage: "checking_credit",
+            language: codeToLanguage(code),
+            createdAt: Date.now(), updatedAt: Date.now(),
+          });
+        }
+
         // ===== Run orchestrator with Deepgram transcript =====
         patchCall(cid, { state: "thinking", language: codeToLanguage(code) });
         const result = await processTurn(dg.transcript, {
           customerId: call.customerId,
           customerName: call.customerName,
-          trustScore: 75,
-          outstanding: 1500,
-          creditLimit: 5000,
+          trustScore, outstanding, creditLimit,
           reliability: 80,
           forcedLanguage: codeToLanguage(code),
           forcedTemplateLang: tplLang,
         });
+
+        // ===== Stage 2: FINALIZE ORDER with credit decision =====
+        if (isOrderIntent && preCommerce.items.length > 0) {
+          const decision = result.financial.decision === "info" ? undefined : result.financial.decision;
+          const stage: "approved" | "rejected" | "conditional" | "ready_for_fulfillment" =
+            decision === "approve" ? "ready_for_fulfillment"
+            : decision === "reject" ? "rejected"
+            : decision === "conditional" ? "conditional"
+            : "ready_for_fulfillment";
+          patchLiveOrder(orderId, {
+            stage, decision,
+            amount: result.amount ?? preCommerce.amount,
+            reasoning: result.financial.reasoning,
+          });
+        }
 
         // Attach Deepgram debug to customer turn
         result.turns.forEach((t) => {
