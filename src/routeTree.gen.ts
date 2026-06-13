@@ -15,15 +15,19 @@ import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as ApiKhataosRouteImport } from './routes/api/khataos'
 import { Route as AppShopkeeperIndexRouteImport } from './routes/app.shopkeeper.index'
 import { Route as AppCustomerIndexRouteImport } from './routes/app.customer.index'
+import { Route as AppShopkeeperSettingsRouteImport } from './routes/app.shopkeeper.settings'
 import { Route as AppShopkeeperProcurementRouteImport } from './routes/app.shopkeeper.procurement'
 import { Route as AppShopkeeperOrdersRouteImport } from './routes/app.shopkeeper.orders'
+import { Route as AppShopkeeperLiveRouteImport } from './routes/app.shopkeeper.live'
 import { Route as AppShopkeeperLedgerRouteImport } from './routes/app.shopkeeper.ledger'
 import { Route as AppShopkeeperInsightsRouteImport } from './routes/app.shopkeeper.insights'
 import { Route as AppShopkeeperCollectionsRouteImport } from './routes/app.shopkeeper.collections'
+import { Route as AppShopkeeperCallsRouteImport } from './routes/app.shopkeeper.calls'
 import { Route as AppCustomerVoiceRouteImport } from './routes/app.customer.voice'
 import { Route as AppCustomerTrustRouteImport } from './routes/app.customer.trust'
 import { Route as AppCustomerRepaymentsRouteImport } from './routes/app.customer.repayments'
 import { Route as AppCustomerCreditRouteImport } from './routes/app.customer.credit'
+import { Route as AppCustomerCallRouteImport } from './routes/app.customer.call'
 import { Route as ApiKhataosHealthRouteImport } from './routes/api/khataos.health'
 import { Route as ApiKhataosCallsRouteImport } from './routes/api/khataos.calls'
 import { Route as ApiPublicTwilioVoiceRouteImport } from './routes/api/public/twilio.voice'
@@ -60,6 +64,11 @@ const AppCustomerIndexRoute = AppCustomerIndexRouteImport.update({
   path: '/customer/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppShopkeeperSettingsRoute = AppShopkeeperSettingsRouteImport.update({
+  id: '/shopkeeper/settings',
+  path: '/shopkeeper/settings',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppShopkeeperProcurementRoute =
   AppShopkeeperProcurementRouteImport.update({
     id: '/shopkeeper/procurement',
@@ -69,6 +78,11 @@ const AppShopkeeperProcurementRoute =
 const AppShopkeeperOrdersRoute = AppShopkeeperOrdersRouteImport.update({
   id: '/shopkeeper/orders',
   path: '/shopkeeper/orders',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppShopkeeperLiveRoute = AppShopkeeperLiveRouteImport.update({
+  id: '/shopkeeper/live',
+  path: '/shopkeeper/live',
   getParentRoute: () => AppRoute,
 } as any)
 const AppShopkeeperLedgerRoute = AppShopkeeperLedgerRouteImport.update({
@@ -87,6 +101,11 @@ const AppShopkeeperCollectionsRoute =
     path: '/shopkeeper/collections',
     getParentRoute: () => AppRoute,
   } as any)
+const AppShopkeeperCallsRoute = AppShopkeeperCallsRouteImport.update({
+  id: '/shopkeeper/calls',
+  path: '/shopkeeper/calls',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCustomerVoiceRoute = AppCustomerVoiceRouteImport.update({
   id: '/customer/voice',
   path: '/customer/voice',
@@ -105,6 +124,11 @@ const AppCustomerRepaymentsRoute = AppCustomerRepaymentsRouteImport.update({
 const AppCustomerCreditRoute = AppCustomerCreditRouteImport.update({
   id: '/customer/credit',
   path: '/customer/credit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCustomerCallRoute = AppCustomerCallRouteImport.update({
+  id: '/customer/call',
+  path: '/customer/call',
   getParentRoute: () => AppRoute,
 } as any)
 const ApiKhataosHealthRoute = ApiKhataosHealthRouteImport.update({
@@ -140,15 +164,19 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
+  '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
   '/app/customer/voice': typeof AppCustomerVoiceRoute
+  '/app/shopkeeper/calls': typeof AppShopkeeperCallsRoute
   '/app/shopkeeper/collections': typeof AppShopkeeperCollectionsRoute
   '/app/shopkeeper/insights': typeof AppShopkeeperInsightsRoute
   '/app/shopkeeper/ledger': typeof AppShopkeeperLedgerRoute
+  '/app/shopkeeper/live': typeof AppShopkeeperLiveRoute
   '/app/shopkeeper/orders': typeof AppShopkeeperOrdersRoute
   '/app/shopkeeper/procurement': typeof AppShopkeeperProcurementRoute
+  '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer/': typeof AppCustomerIndexRoute
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
@@ -161,15 +189,19 @@ export interface FileRoutesByTo {
   '/app': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
+  '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
   '/app/customer/voice': typeof AppCustomerVoiceRoute
+  '/app/shopkeeper/calls': typeof AppShopkeeperCallsRoute
   '/app/shopkeeper/collections': typeof AppShopkeeperCollectionsRoute
   '/app/shopkeeper/insights': typeof AppShopkeeperInsightsRoute
   '/app/shopkeeper/ledger': typeof AppShopkeeperLedgerRoute
+  '/app/shopkeeper/live': typeof AppShopkeeperLiveRoute
   '/app/shopkeeper/orders': typeof AppShopkeeperOrdersRoute
   '/app/shopkeeper/procurement': typeof AppShopkeeperProcurementRoute
+  '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer': typeof AppCustomerIndexRoute
   '/app/shopkeeper': typeof AppShopkeeperIndexRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
@@ -184,15 +216,19 @@ export interface FileRoutesById {
   '/app/': typeof AppIndexRoute
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
+  '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/repayments': typeof AppCustomerRepaymentsRoute
   '/app/customer/trust': typeof AppCustomerTrustRoute
   '/app/customer/voice': typeof AppCustomerVoiceRoute
+  '/app/shopkeeper/calls': typeof AppShopkeeperCallsRoute
   '/app/shopkeeper/collections': typeof AppShopkeeperCollectionsRoute
   '/app/shopkeeper/insights': typeof AppShopkeeperInsightsRoute
   '/app/shopkeeper/ledger': typeof AppShopkeeperLedgerRoute
+  '/app/shopkeeper/live': typeof AppShopkeeperLiveRoute
   '/app/shopkeeper/orders': typeof AppShopkeeperOrdersRoute
   '/app/shopkeeper/procurement': typeof AppShopkeeperProcurementRoute
+  '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer/': typeof AppCustomerIndexRoute
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
@@ -208,15 +244,19 @@ export interface FileRouteTypes {
     | '/app/'
     | '/api/khataos/calls'
     | '/api/khataos/health'
+    | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/repayments'
     | '/app/customer/trust'
     | '/app/customer/voice'
+    | '/app/shopkeeper/calls'
     | '/app/shopkeeper/collections'
     | '/app/shopkeeper/insights'
     | '/app/shopkeeper/ledger'
+    | '/app/shopkeeper/live'
     | '/app/shopkeeper/orders'
     | '/app/shopkeeper/procurement'
+    | '/app/shopkeeper/settings'
     | '/app/customer/'
     | '/app/shopkeeper/'
     | '/api/public/twilio/gather'
@@ -229,15 +269,19 @@ export interface FileRouteTypes {
     | '/app'
     | '/api/khataos/calls'
     | '/api/khataos/health'
+    | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/repayments'
     | '/app/customer/trust'
     | '/app/customer/voice'
+    | '/app/shopkeeper/calls'
     | '/app/shopkeeper/collections'
     | '/app/shopkeeper/insights'
     | '/app/shopkeeper/ledger'
+    | '/app/shopkeeper/live'
     | '/app/shopkeeper/orders'
     | '/app/shopkeeper/procurement'
+    | '/app/shopkeeper/settings'
     | '/app/customer'
     | '/app/shopkeeper'
     | '/api/public/twilio/gather'
@@ -251,15 +295,19 @@ export interface FileRouteTypes {
     | '/app/'
     | '/api/khataos/calls'
     | '/api/khataos/health'
+    | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/repayments'
     | '/app/customer/trust'
     | '/app/customer/voice'
+    | '/app/shopkeeper/calls'
     | '/app/shopkeeper/collections'
     | '/app/shopkeeper/insights'
     | '/app/shopkeeper/ledger'
+    | '/app/shopkeeper/live'
     | '/app/shopkeeper/orders'
     | '/app/shopkeeper/procurement'
+    | '/app/shopkeeper/settings'
     | '/app/customer/'
     | '/app/shopkeeper/'
     | '/api/public/twilio/gather'
@@ -320,6 +368,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomerIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/shopkeeper/settings': {
+      id: '/app/shopkeeper/settings'
+      path: '/shopkeeper/settings'
+      fullPath: '/app/shopkeeper/settings'
+      preLoaderRoute: typeof AppShopkeeperSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/shopkeeper/procurement': {
       id: '/app/shopkeeper/procurement'
       path: '/shopkeeper/procurement'
@@ -332,6 +387,13 @@ declare module '@tanstack/react-router' {
       path: '/shopkeeper/orders'
       fullPath: '/app/shopkeeper/orders'
       preLoaderRoute: typeof AppShopkeeperOrdersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/shopkeeper/live': {
+      id: '/app/shopkeeper/live'
+      path: '/shopkeeper/live'
+      fullPath: '/app/shopkeeper/live'
+      preLoaderRoute: typeof AppShopkeeperLiveRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/shopkeeper/ledger': {
@@ -353,6 +415,13 @@ declare module '@tanstack/react-router' {
       path: '/shopkeeper/collections'
       fullPath: '/app/shopkeeper/collections'
       preLoaderRoute: typeof AppShopkeeperCollectionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/shopkeeper/calls': {
+      id: '/app/shopkeeper/calls'
+      path: '/shopkeeper/calls'
+      fullPath: '/app/shopkeeper/calls'
+      preLoaderRoute: typeof AppShopkeeperCallsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/customer/voice': {
@@ -381,6 +450,13 @@ declare module '@tanstack/react-router' {
       path: '/customer/credit'
       fullPath: '/app/customer/credit'
       preLoaderRoute: typeof AppCustomerCreditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/customer/call': {
+      id: '/app/customer/call'
+      path: '/customer/call'
+      fullPath: '/app/customer/call'
+      preLoaderRoute: typeof AppCustomerCallRouteImport
       parentRoute: typeof AppRoute
     }
     '/api/khataos/health': {
@@ -423,30 +499,38 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
+  AppCustomerCallRoute: typeof AppCustomerCallRoute
   AppCustomerCreditRoute: typeof AppCustomerCreditRoute
   AppCustomerRepaymentsRoute: typeof AppCustomerRepaymentsRoute
   AppCustomerTrustRoute: typeof AppCustomerTrustRoute
   AppCustomerVoiceRoute: typeof AppCustomerVoiceRoute
+  AppShopkeeperCallsRoute: typeof AppShopkeeperCallsRoute
   AppShopkeeperCollectionsRoute: typeof AppShopkeeperCollectionsRoute
   AppShopkeeperInsightsRoute: typeof AppShopkeeperInsightsRoute
   AppShopkeeperLedgerRoute: typeof AppShopkeeperLedgerRoute
+  AppShopkeeperLiveRoute: typeof AppShopkeeperLiveRoute
   AppShopkeeperOrdersRoute: typeof AppShopkeeperOrdersRoute
   AppShopkeeperProcurementRoute: typeof AppShopkeeperProcurementRoute
+  AppShopkeeperSettingsRoute: typeof AppShopkeeperSettingsRoute
   AppCustomerIndexRoute: typeof AppCustomerIndexRoute
   AppShopkeeperIndexRoute: typeof AppShopkeeperIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
+  AppCustomerCallRoute: AppCustomerCallRoute,
   AppCustomerCreditRoute: AppCustomerCreditRoute,
   AppCustomerRepaymentsRoute: AppCustomerRepaymentsRoute,
   AppCustomerTrustRoute: AppCustomerTrustRoute,
   AppCustomerVoiceRoute: AppCustomerVoiceRoute,
+  AppShopkeeperCallsRoute: AppShopkeeperCallsRoute,
   AppShopkeeperCollectionsRoute: AppShopkeeperCollectionsRoute,
   AppShopkeeperInsightsRoute: AppShopkeeperInsightsRoute,
   AppShopkeeperLedgerRoute: AppShopkeeperLedgerRoute,
+  AppShopkeeperLiveRoute: AppShopkeeperLiveRoute,
   AppShopkeeperOrdersRoute: AppShopkeeperOrdersRoute,
   AppShopkeeperProcurementRoute: AppShopkeeperProcurementRoute,
+  AppShopkeeperSettingsRoute: AppShopkeeperSettingsRoute,
   AppCustomerIndexRoute: AppCustomerIndexRoute,
   AppShopkeeperIndexRoute: AppShopkeeperIndexRoute,
 }
@@ -478,13 +562,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -29,10 +29,13 @@ function CallScreen() {
   const [loadingBrain, setLoadingBrain] = useState(false);
   const recRef = useRef<any>(null);
 
-  useEffect(() => onCommerceBrainProgress((p, t) => {
-    setBrainPct(p); setBrainStatus(t);
-    if (p >= 1) setBrainReady(true);
-  }), []);
+  useEffect(() => {
+    const off = onCommerceBrainProgress((p, t) => {
+      setBrainPct(p); setBrainStatus(t);
+      if (p >= 1) setBrainReady(true);
+    });
+    return () => { off(); };
+  }, []);
 
   useEffect(() => {
     if (phase !== "in_call") return;
@@ -228,7 +231,7 @@ function CallScreen() {
           </button>
           <div className="mt-2 text-[12px] text-ink-muted">
             {stage === "commerce" ? "Parsing intent…" :
-             stage === "financial" ? `${AGENT_META[(agent as any)]?.label ?? "Financial Brain"} thinking…` :
+             stage === "financial" ? `${(agent && AGENT_META[agent as keyof typeof AGENT_META]?.label) ?? "Financial Brain"} thinking…` :
              stage === "template" ? "Composing reply…" :
              listening ? "Listening…" : "Tap to speak"}
           </div>
