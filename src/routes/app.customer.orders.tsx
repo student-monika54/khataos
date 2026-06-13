@@ -79,10 +79,14 @@ function OrdersErrorBoundary({ error, reset }: { error: Error; reset: () => void
 
 function CustomerOrders() {
   // Defensive store reads — never crash if shape is unexpected.
-  const me = useKhata((s) => s.customers.find((c) => c.id === s.me.id));
+  const customers = useKhata((s) => s.customers);
+  const meId = useKhata((s) => s.me.id);
   const shop = useKhata((s) => s.shop);
-  const ledgerOrders = useKhata((s) =>
-    me ? (s.orders ?? []).filter((o) => o.customerId === me.id) : [],
+  const allOrders = useKhata((s) => s.orders);
+  const me = useMemo(() => customers.find((c) => c.id === meId), [customers, meId]);
+  const ledgerOrders = useMemo(
+    () => (me ? (allOrders ?? []).filter((o) => o.customerId === me.id) : []),
+    [allOrders, me],
   );
 
   const [orders, setOrders] = useState<LiveOrder[]>([]);
