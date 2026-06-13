@@ -42,6 +42,12 @@ export type TranscriptTurn = {
   noIntentMatch?: boolean;     // true => classifier returned UNKNOWN
   rawTranscript?: string;      // exact text as received from Twilio STT
   pipelineStage?: "stt" | "commerce" | "financial" | "template" | "tts";
+  // STT debug — captured directly from Twilio Gather webhook
+  sttLocale?: string;          // language hint we sent to Twilio (e.g. hi-IN)
+  sttModel?: string;           // speechModel we sent (default | experimental_conversations)
+  expectedSttLocale?: string;  // what we expected based on locked language
+  speechConfidence?: number;   // Twilio `Confidence` field, 0-1
+  transcriptLength?: number;   // characters in raw transcript
 };
 
 export type CallRecord = {
