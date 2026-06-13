@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useKhata, formatINR } from "@/lib/khataos/data";
 import { AppHeader, AppScreen, StatCard, Section } from "@/components/app/AppShell";
-import { Mic, ArrowUpRight, TrendingUp } from "lucide-react";
+import { Mic, ArrowUpRight, TrendingUp, Phone } from "lucide-react";
 
 export const Route = createFileRoute("/app/customer/")({
   component: CustomerHome,
