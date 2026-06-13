@@ -1,9 +1,10 @@
-// Orchestrator: Commerce Brain (rules) → Financial Brain → Template Engine.
-// Used by both Twilio gather webhook and the simulated dialer.
+// Orchestrator: Intent Detection → Commerce Brain → Financial Brain → Template Engine.
+// END_CALL has the highest priority and short-circuits the financial brain
+// so the agent always ends the call gracefully.
 
 import { runCommerceBrainRules } from "./commerce-brain-rules";
 import { runFinancialBrain } from "./financial-brain.server";
-import { pickTemplate, renderTemplate } from "./templates";
+import { pickTemplate, renderTemplate, languageToTemplateLang } from "./templates";
 import type { TranscriptTurn } from "./calls";
 
 export type ConversationContext = {
@@ -20,6 +21,22 @@ export type ConversationContext = {
 export async function processTurn(text: string, ctx: ConversationContext) {
   const t0 = Date.now();
   const commerce = runCommerceBrainRules(text);
+  const lang = languageToTemplateLang(commerce.language);
+
+  // ====== END_CALL short-circuit ======
+  if (commerce.intent === "END_CALL") {
+    const reply = renderTemplate("END_CALL", { customerName: ctx.customerName }, lang);
+    const turns: TranscriptTurn[] = [
+      { role: "customer", text, at: t0, intent: "END_CALL", language: commerce.language },
+      { role: "agent", text: reply, at: Date.now(), intent: "END_CALL", agent: "InsightsAgent",
+        templateId: "END_CALL", latencyMs: Date.now() - t0 },
+    ];
+    return {
+      commerce, financial: { agent: "InsightsAgent" as const, decision: "info" as const, reasoning: "Customer ended the call." },
+      templateId: "END_CALL", reply, turns, newOutstanding: ctx.outstanding, amount: undefined,
+      endCall: true,
+    };
+  }
 
   const itemsTotal = commerce.items.reduce((sum, i) => {
     const n = parseFloat(i.quantity);
@@ -38,13 +55,12 @@ export async function processTurn(text: string, ctx: ConversationContext) {
   });
 
   const tplId = pickTemplate(commerce.intent, financial.decision === "info" ? undefined : financial.decision);
-  const lang = commerce.language === "Hindi" || commerce.language === "Hinglish" ? "hi" : "en";
 
   const amount = financial.recommendedAmount ?? requestedAmount;
   const newOutstanding =
     financial.decision === "approve" && (commerce.intent === "CREDIT_REQUEST" || commerce.intent === "KHATA_ORDER")
       ? ctx.outstanding + (amount ?? 0)
-      : commerce.intent === "REPAYMENT" && commerce.amount
+      : (commerce.intent === "REPAYMENT" || commerce.intent === "PAYMENT_CONFIRMATION") && commerce.amount
         ? Math.max(0, ctx.outstanding - commerce.amount)
         : ctx.outstanding;
 
@@ -72,8 +88,9 @@ export async function processTurn(text: string, ctx: ConversationContext) {
       intent: commerce.intent, agent: financial.agent,
       templateId: tplId, decision: financial.decision === "info" ? undefined : financial.decision,
       reasoning: financial.reasoning, latencyMs: Date.now() - t0,
+      language: commerce.language,
     },
   ];
 
-  return { commerce, financial, templateId: tplId, reply, turns, newOutstanding, amount };
+  return { commerce, financial, templateId: tplId, reply, turns, newOutstanding, amount, endCall: false };
 }
