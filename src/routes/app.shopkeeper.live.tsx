@@ -99,6 +99,24 @@ function LiveView() {
         />
       </div>
 
+      <Section title="Language routing debug">
+        <div className="rounded-2xl border border-emerald/20 bg-elevated/60 p-3 text-[11px]">
+          <div className="mb-2 text-[10px] uppercase tracking-[0.14em] text-ink-subtle">
+            Per-turn detection · routing · agent
+          </div>
+          <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-2 gap-y-1 font-mono">
+            <div className="text-ink-subtle">Transcript</div>
+            <div className="text-ink-subtle text-right">Lang</div>
+            <div className="text-ink-subtle text-right">Conf</div>
+            <div className="text-ink-subtle text-right">Tpl</div>
+            <div className="text-ink-subtle text-right">Intent</div>
+            {call.transcript.slice(-6).map((t, i) => (
+              <FragmentRow key={i} t={t} />
+            ))}
+          </div>
+        </div>
+      </Section>
+
       <Section title="Live transcript">
         <ul className="space-y-2">
           {call.transcript.slice(-8).map((t, i) => (
@@ -107,7 +125,9 @@ function LiveView() {
                 t.role === "customer" ? "bg-emerald text-[#06140b]" : "bg-elevated border border-border"
               }`}>
                 {t.role === "agent" && t.templateId && (
-                  <div className="mb-0.5 text-[9px] uppercase tracking-[0.14em] text-emerald">{t.templateId}</div>
+                  <div className="mb-0.5 text-[9px] uppercase tracking-[0.14em] text-emerald">
+                    {t.templateId}{t.templateLang ? ` · ${t.templateLang}` : ""}
+                  </div>
                 )}
                 {t.text}
               </div>
@@ -116,5 +136,20 @@ function LiveView() {
         </ul>
       </Section>
     </AppScreen>
+  );
+}
+
+function FragmentRow({ t }: { t: import("@/lib/khataos/calls").TranscriptTurn }) {
+  const isCust = t.role === "customer";
+  return (
+    <>
+      <div className={`truncate ${isCust ? "text-ink" : "text-emerald"}`}>
+        <span className="mr-1 opacity-60">{isCust ? "U›" : "A›"}</span>{t.text}
+      </div>
+      <div className="text-right text-ink-muted">{t.language ?? "—"}</div>
+      <div className="text-right text-ink-muted">{t.confidence ? t.confidence.toFixed(2) : "—"}</div>
+      <div className="text-right text-ink-muted">{t.templateLang ?? "—"}</div>
+      <div className="text-right text-ink-muted">{t.intent ?? "—"}</div>
+    </>
   );
 }
