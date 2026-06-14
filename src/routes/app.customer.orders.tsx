@@ -210,6 +210,8 @@ function CustomerOrders() {
         )}
       </div>
 
+      <PendingApprovalSection customerId={me.id} />
+
       {loading && !hasAnything && !apiError ? (
         <div className="px-4 pt-6">
           <div className="rounded-2xl border border-border bg-elevated/40 p-5 text-center text-[12px] text-ink-muted">
@@ -221,7 +223,6 @@ function CustomerOrders() {
         <EmptyState />
       ) : (
         <>
-          <PendingApprovalSection customerId={me.id} />
 
           <Section title="Active orders">
             {active.length === 0 ? (
