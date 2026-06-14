@@ -2,12 +2,19 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppHeader, AppScreen, Section } from "@/components/app/AppShell";
 import { useKhata, formatINR } from "@/lib/khataos/data";
-import { Phone, Package, Loader2, Sparkles, AlertTriangle, RefreshCw, CheckCircle2, XCircle, Clock } from "lucide-react";
+import {
+  Phone, Package, Loader2, Sparkles, AlertTriangle, RefreshCw,
+  CheckCircle2, XCircle, Clock, ShieldCheck, Truck, PackageCheck,
+} from "lucide-react";
 
 export const Route = createFileRoute("/app/customer/orders")({
   component: CustomerOrders,
   errorComponent: OrdersErrorBoundary,
 });
+
+type Status =
+  | "pending_credit_review" | "approved" | "rejected"
+  | "packed" | "ready_for_pickup" | "delivered";
 
 type DbOrder = {
   id: string;
@@ -15,13 +22,15 @@ type DbOrder = {
   customer_name: string;
   phone: string | null;
   source: string;
-  call_id: string | null;
   items: { name: string; quantity: number; unit?: string; estimatedPrice?: number }[];
   amount: number | null;
   language: string | null;
   transcript: string | null;
-  status: "pending_approval" | "approved" | "rejected" | "packed" | "ready" | "delivered";
+  status: Status;
   reasoning: string | null;
+  trust_score: number | null;
+  credit_recommendation: string | null;
+  decision_reason: string | null;
   created_at: string;
 };
 
@@ -48,7 +57,6 @@ function CustomerOrders() {
   const shop = useKhata((s) => s.shop);
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,21 +81,14 @@ function CustomerOrders() {
     return () => { mounted = false; clearInterval(id); };
   }, [meId]);
 
-  async function decide(id: string, decision: "approve" | "reject") {
-    setBusy(id);
-    try {
-      await fetch("/api/khataos/orders/decision", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, decision }),
-      });
-      setOrders((cur) => cur.map((o) => o.id === id ? { ...o, status: decision === "approve" ? "approved" : "rejected" } : o));
-    } finally { setBusy(null); }
-  }
+  const TERMINAL: Status[] = ["delivered", "rejected"];
+  const inProgress = orders.filter((o) => !TERMINAL.includes(o.status));
+  const past = orders.filter((o) => TERMINAL.includes(o.status));
 
-  const pending = orders.filter((o) => o.status === "pending_approval");
-  const active = orders.filter((o) => ["approved", "packed", "ready"].includes(o.status));
-  const past = orders.filter((o) => ["delivered", "rejected"].includes(o.status));
+  const pendingCount = orders.filter((o) => o.status === "pending_credit_review").length;
+  const approvedCount = orders.filter((o) => ["approved", "packed", "ready_for_pickup"].includes(o.status)).length;
+  const deliveredCount = orders.filter((o) => o.status === "delivered").length;
+  const rejectedCount = orders.filter((o) => o.status === "rejected").length;
 
   return (
     <AppScreen>
@@ -100,10 +101,10 @@ function CustomerOrders() {
           </div>
           <div className="mt-2 grid grid-cols-4 gap-2 text-center">
             {[
-              { label: "Pending", value: pending.length },
-              { label: "Active", value: active.length },
-              { label: "Delivered", value: orders.filter((o) => o.status === "delivered").length },
-              { label: "Rejected", value: orders.filter((o) => o.status === "rejected").length },
+              { label: "In review", value: pendingCount },
+              { label: "Active", value: approvedCount },
+              { label: "Delivered", value: deliveredCount },
+              { label: "Rejected", value: rejectedCount },
             ].map((m) => (
               <div key={m.label}>
                 <div className="font-display text-xl font-semibold">{m.value}</div>
@@ -139,44 +140,17 @@ function CustomerOrders() {
         <EmptyState />
       ) : (
         <>
-          {pending.length > 0 && (
-            <Section title={`Awaiting your approval · ${pending.length}`}>
+          {inProgress.length > 0 && (
+            <Section title={`In progress · ${inProgress.length}`}>
               <ul className="space-y-3">
-                {pending.map((o) => (
-                  <li key={o.id} className="rounded-2xl border border-amber-400/40 bg-amber-400/[0.06] p-4">
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3 text-amber-300" />
-                      <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300 font-semibold">AI-parsed order · {o.source.replace("_", " ")}</span>
-                    </div>
-                    {o.transcript && <p className="mt-2 text-[11.5px] italic text-ink-muted line-clamp-2">"{o.transcript}"</p>}
-                    <ItemList items={o.items} />
-                    {o.amount != null && (
-                      <div className="mt-2 flex justify-between border-t border-amber-400/20 pt-2 text-[13px] font-semibold">
-                        <span>Estimated total</span><span>{formatINR(Number(o.amount))}</span>
-                      </div>
-                    )}
-                    <div className="mt-3 flex gap-2">
-                      <button disabled={busy === o.id} onClick={() => decide(o.id, "reject")} className="flex-1 rounded-full border border-border bg-surface py-2 text-[12.5px] font-semibold disabled:opacity-50">Reject</button>
-                      <button disabled={busy === o.id} onClick={() => decide(o.id, "approve")} className="flex-1 rounded-full bg-emerald py-2 text-[12.5px] font-semibold text-[#06140b] disabled:opacity-50">{busy === o.id ? "Sending…" : "Approve & send"}</button>
-                    </div>
-                  </li>
-                ))}
+                {inProgress.map((o) => <OrderCard key={o.id} o={o} storeName={shop?.name ?? "Store"} />)}
               </ul>
             </Section>
           )}
-
-          {active.length > 0 && (
-            <Section title={`Active · ${active.length}`}>
-              <ul className="space-y-3">
-                {active.map((o) => <OrderRow key={o.id} o={o} storeName={shop?.name ?? "Store"} />)}
-              </ul>
-            </Section>
-          )}
-
           {past.length > 0 && (
             <Section title="Previous orders">
               <ul className="space-y-2">
-                {past.map((o) => <OrderRow key={o.id} o={o} storeName={shop?.name ?? "Store"} dim />)}
+                {past.map((o) => <OrderCard key={o.id} o={o} storeName={shop?.name ?? "Store"} dim />)}
               </ul>
             </Section>
           )}
@@ -186,37 +160,27 @@ function CustomerOrders() {
   );
 }
 
-function ItemList({ items }: { items: DbOrder["items"] }) {
-  return (
-    <ul className="mt-2.5 space-y-1">
-      {items.map((it, i) => (
-        <li key={i} className="flex justify-between text-[12.5px]">
-          <span>{it.quantity} {it.unit ?? "pcs"} {it.name}</span>
-          {it.estimatedPrice != null && <span className="text-ink-muted">{formatINR(it.estimatedPrice)}</span>}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-const STATUS_LABEL: Record<DbOrder["status"], { label: string; tone: string; icon: any }> = {
-  pending_approval: { label: "Pending approval", tone: "text-amber-300", icon: Clock },
-  approved: { label: "Approved", tone: "text-emerald", icon: CheckCircle2 },
-  packed: { label: "Packed", tone: "text-emerald", icon: Package },
-  ready: { label: "Ready for pickup", tone: "text-emerald", icon: Package },
-  delivered: { label: "Delivered", tone: "text-ink-muted", icon: CheckCircle2 },
-  rejected: { label: "Rejected", tone: "text-destructive", icon: XCircle },
+const STATUS_META: Record<Status, { label: string; tone: string; icon: any; next: string | null }> = {
+  pending_credit_review: { label: "Pending credit review", tone: "text-amber-300", icon: Clock, next: "Awaiting shopkeeper approval" },
+  approved: { label: "Approved", tone: "text-emerald", icon: ShieldCheck, next: "Shop is preparing your order" },
+  packed: { label: "Packed", tone: "text-emerald", icon: Package, next: "Will be ready for pickup soon" },
+  ready_for_pickup: { label: "Ready for pickup", tone: "text-emerald", icon: PackageCheck, next: "Visit the shop to collect" },
+  delivered: { label: "Delivered", tone: "text-ink-muted", icon: Truck, next: null },
+  rejected: { label: "Rejected", tone: "text-destructive", icon: XCircle, next: null },
 };
 
-function OrderRow({ o, storeName, dim }: { o: DbOrder; storeName: string; dim?: boolean }) {
-  const meta = STATUS_LABEL[o.status];
+function OrderCard({ o, storeName, dim }: { o: DbOrder; storeName: string; dim?: boolean }) {
+  const meta = STATUS_META[o.status];
   const Icon = meta.icon;
   return (
     <li className={`rounded-2xl border border-border bg-elevated/60 p-4 ${dim ? "opacity-80" : ""}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="truncate font-display text-[13.5px] font-semibold">{storeName}</div>
-          <div className="text-[10.5px] text-ink-muted">#{o.id.slice(-6)} · {new Date(o.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
+          <div className="text-[10.5px] text-ink-muted">
+            #{o.id.slice(-6)} · {new Date(o.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+            {" · "}{o.source.replace(/_/g, " ")}
+          </div>
         </div>
         <div className="text-right">
           <div className="font-display text-[14.5px] font-semibold">{o.amount != null ? formatINR(Number(o.amount)) : "—"}</div>
@@ -225,7 +189,27 @@ function OrderRow({ o, storeName, dim }: { o: DbOrder; storeName: string; dim?: 
           </div>
         </div>
       </div>
-      <ItemList items={o.items} />
+
+      <ul className="mt-2.5 space-y-1">
+        {o.items.map((it, i) => (
+          <li key={i} className="flex justify-between text-[12.5px]">
+            <span>{it.quantity} {it.unit ?? "pcs"} {it.name}</span>
+            {it.estimatedPrice != null && <span className="text-ink-muted">{formatINR(it.estimatedPrice)}</span>}
+          </li>
+        ))}
+      </ul>
+
+      {meta.next && (
+        <div className="mt-3 flex items-center gap-1.5 rounded-xl border border-emerald/20 bg-emerald/[0.05] px-3 py-2 text-[11px] text-emerald">
+          <CheckCircle2 className="h-3 w-3" /> Next: {meta.next}
+        </div>
+      )}
+
+      {o.decision_reason && (
+        <p className="mt-2 text-[11px] leading-snug text-ink-muted">
+          <span className="font-semibold text-emerald">Note: </span>{o.decision_reason}
+        </p>
+      )}
     </li>
   );
 }
