@@ -137,7 +137,7 @@ function CallScreen() {
       }),
     }).catch(() => {});
 
-    setTimeout(() => { say(reply); setBusy(false); setCart([]); }, 900);
+    setTimeout(() => { say(reply); setBusy(false); setCart([]); }, 250);
   }
 
   function checkBalance() {
