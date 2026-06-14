@@ -124,9 +124,10 @@ export const Route = createFileRoute("/api/khataos/orders")({
           decision_reason: decisionReason,
         }).select("*").single();
         if (error) {
-          console.error("[orders] insert failed", error);
+          console.error("[orders][POST] insert failed", error);
           return Response.json({ error: error.message }, { status: 500 });
         }
+        console.log("[orders][POST] inserted", { id: data.id, customerId: data.customer_id, source: data.source, items: items.length, amount });
         return Response.json(data);
       },
     },
