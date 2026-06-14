@@ -19,8 +19,10 @@ export type Database = {
           amount: number | null
           call_id: string | null
           created_at: string
+          credit_recommendation: string | null
           customer_id: string
           customer_name: string
+          decision_reason: string | null
           id: string
           items: Json
           language: string | null
@@ -30,14 +32,17 @@ export type Database = {
           source: string
           status: string
           transcript: string | null
+          trust_score: number | null
           updated_at: string
         }
         Insert: {
           amount?: number | null
           call_id?: string | null
           created_at?: string
+          credit_recommendation?: string | null
           customer_id: string
           customer_name: string
+          decision_reason?: string | null
           id?: string
           items?: Json
           language?: string | null
@@ -47,14 +52,17 @@ export type Database = {
           source?: string
           status?: string
           transcript?: string | null
+          trust_score?: number | null
           updated_at?: string
         }
         Update: {
           amount?: number | null
           call_id?: string | null
           created_at?: string
+          credit_recommendation?: string | null
           customer_id?: string
           customer_name?: string
+          decision_reason?: string | null
           id?: string
           items?: Json
           language?: string | null
@@ -64,6 +72,7 @@ export type Database = {
           source?: string
           status?: string
           transcript?: string | null
+          trust_score?: number | null
           updated_at?: string
         }
         Relationships: []

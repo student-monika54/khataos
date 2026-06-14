@@ -131,7 +131,6 @@ function CallScreen() {
         callId,
         items: orderItems,
         amount: total,
-        status: data.decision === "approve" ? "approved" : "pending_approval",
         reasoning: data.reasoning,
       }),
     }).catch(() => {});

@@ -1,56 +1,77 @@
-# Persistent, synced orders across customer & retailer
-
-## Problem today
-- Customer Orders tab reads from a local Zustand store (`useKhata`) — nothing persists, nothing syncs between phones.
-- Shopkeeper "Incoming Orders" reads from an in-memory `Map` in `live-orders.server.ts` — lost on worker restart, not shared across regions/devices.
-- The Quick Voice screen (`/app/customer/voice`) only chats; it never creates an order.
-- Only the Twilio inbound-call STT path currently writes to the `voice_orders` table.
-
-Result: orders look fine on the phone that placed them and vanish everywhere else.
-
 ## Goal
-One database is the source of truth for every order (voice, in-app call, quick voice). Both the customer Orders tab and the retailer dashboard read from it and stay in sync via polling.
+Correct the order lifecycle so customers never approve their own orders. Retailer owns approve/reject and all fulfillment transitions. Both sides read the same DB row and stay in sync via polling.
+
+Note on storage: we keep the existing Lovable Cloud Postgres `orders` table as the real DB (already created, already synced across devices). SQLite isn't viable in our serverless Worker runtime — Postgres gives us the same "real DB" guarantee plus multi-device sync, which is the actual requirement.
+
+## New status pipeline
+
+```text
+pending_credit_review
+   → approved  →  packed  →  ready_for_pickup  →  delivered
+   → rejected
+```
+
+Replaces today's `pending_approval` / `approved` / `packed` / `ready` / `delivered` / `rejected`.
 
 ## Changes
 
-### 1. Database — single `orders` table
-New migration:
-- `public.orders` columns: `id`, `customer_id`, `customer_name`, `phone`, `retailer_id` (nullable for now, defaults to the demo shop), `source` (`voice_call` | `quick_voice` | `in_app_call`), `call_id` (nullable), `items` (jsonb), `amount` (numeric), `language`, `transcript`, `status` (`pending_approval` | `approved` | `rejected` | `packed` | `ready` | `delivered`), `reasoning`, `created_at`, `updated_at`.
-- GRANTs for `service_role` (admin path) only; RLS enabled, no anon/authenticated policies (all access via server functions using `supabaseAdmin`, same pattern already used for `voice_orders`).
-- `update_updated_at` trigger.
-- Keep `voice_orders` for backward compat but route everything new through `orders`.
+### 1. DB migration (`orders` table)
+- Default `status` becomes `pending_credit_review`.
+- Rename status value `ready` → `ready_for_pickup` (data backfill + new default set).
+- Add columns: `trust_score numeric`, `credit_recommendation text` (`approve` | `review` | `reject`), `decision_reason text`.
+- Backfill existing `pending_approval` rows → `pending_credit_review`.
+- Keep RLS service-role-only (unchanged).
 
-### 2. Server endpoints (all DB-backed, drop in-memory store)
-- `GET /api/khataos/orders?customerId=…` — list a customer's orders (pending + history), newest first.
-- `GET /api/khataos/orders/live` — replace current in-memory listing with a DB query (latest 25 across all customers for the shopkeeper).
-- `POST /api/khataos/orders` — create order (used by Quick Voice + in-app call checkout). Body: `{ source, customerId, items, amount, transcript?, language?, callId? }`. Returns the row.
-- `POST /api/khataos/orders/decision` — `{ orderId, action: 'approve'|'reject' }` flips status; on approve the row becomes visible to retailer as "ready_for_fulfillment".
-- `POST /api/khataos/orders/status` — shopkeeper transitions (`packed` → `ready` → `delivered`).
+### 2. Financial Brain on order creation
+In `POST /api/khataos/orders` (after Gemini item extraction), call the existing `financial-brain.server.ts` with `{ customerId, amount, items }`. Persist `trust_score`, `credit_recommendation`, `decision_reason` on the row. Status stays `pending_credit_review` regardless — retailer always has final say. Recommendation is advisory.
 
-### 3. Quick Voice (`app.customer.voice.tsx`)
-After the user finishes speaking and the assistant replies, also run the transcript through the existing `extractOrderFromTranscript` (Gemini 3 Flash via Lovable AI Gateway). If items are detected:
-- POST `/api/khataos/orders` with `source: 'quick_voice'`, status defaults to `pending_approval`.
-- Show inline confirmation: "Order draft sent for your approval — check Orders tab."
+### 3. Endpoints
+- Delete `POST /api/khataos/orders/decision` (customer-side approve/reject). No longer exists.
+- Keep `POST /api/khataos/orders/status` but tighten allowed transitions:
+  - `pending_credit_review → approved | rejected`
+  - `approved → packed`
+  - `packed → ready_for_pickup`
+  - `ready_for_pickup → delivered`
+  - Any → `rejected` only from `pending_credit_review`.
+  Reject anything else with 400.
+- `GET /api/khataos/orders?customerId=…` unchanged.
+- `GET /api/khataos/orders` (retailer list) unchanged; ensure it returns the new financial-brain fields.
 
-### 4. In-app call checkout (`app.customer.call.tsx`)
-On `checkout`, after the financial-brain decision, also POST `/api/khataos/orders` with `source: 'in_app_call'`, items from the cart, status = `pending_approval` (or `approved` if decision is `approve`).
+### 4. Customer Orders page (`app.customer.orders.tsx`)
+Read-only timeline. Remove Approve/Reject buttons entirely. For every order show:
+- Store name, order id tail, created time, amount, items.
+- Current status chip with friendly label (Pending credit review / Approved / Rejected / Packed / Ready for pickup / Delivered).
+- Decision reason from financial brain (when present) + retailer note (if rejected).
+- "Next step" hint based on current status.
+- Sections: **In progress** (everything not delivered/rejected) and **Previous orders** (delivered/rejected).
+- Keep 2s polling.
 
-### 5. Customer Orders tab (`app.customer.orders.tsx`)
-Replace local-store reads with a poll (2s) of `GET /api/khataos/orders?customerId=…`. Two sections:
-- **Pending approval** — Approve/Reject buttons call `/decision`.
-- **Previous orders** — everything else, grouped by status.
+### 5. Retailer Orders page (`app.shopkeeper.orders.tsx`)
+This is where mutation lives. For each order render:
+- Customer name, phone, items, amount.
+- Financial-brain panel: trust score, recommendation badge, decision reason.
+- Buttons gated by current status:
+  - `pending_credit_review`: **Approve** / **Reject**
+  - `approved`: **Mark Packed**
+  - `packed`: **Mark Ready for Pickup**
+  - `ready_for_pickup`: **Mark Delivered**
+  - Terminal (`delivered`/`rejected`): no buttons.
+- All call `POST /api/khataos/orders/status`.
+- Keep existing polling.
 
-### 6. Retailer dashboard (`app.shopkeeper.orders.tsx`)
-Already polls `/api/khataos/orders/live`; swap that endpoint's backing store to the DB. Status-change buttons (Pack / Ready / Delivered) call `/api/khataos/orders/status` instead of mutating local Zustand.
+### 6. Voice / Quick Voice / In-app call creation paths
+All three (`twilio.record.ts`, `app.customer.voice.tsx`, `app.customer.call.tsx`) already POST to `/api/khataos/orders`. Confirm they do NOT pass `status: 'approved'`. Status will default to `pending_credit_review` server-side. Remove any client-supplied status override.
 
-### 7. Cleanup
-- Remove `src/lib/khataos/live-orders.server.ts` usages once endpoints are DB-backed (keep the file as a thin shim for one release if anything still imports it, else delete).
-- Twilio inbound webhook keeps inserting into the same `orders` table (replace `voice_orders.insert` with `orders.insert`).
+### 7. Types regeneration
+After migration runs, regenerated `src/integrations/supabase/types.ts` will pick up the new columns; update the `DbOrder` TS type in the two pages to include `trust_score`, `credit_recommendation`, `decision_reason` and the new status union.
 
 ## Out of scope
-- Multi-retailer routing (single-retailer demo for now; `retailer_id` reserved).
-- Supabase Realtime channels — polling every 2s is enough for the demo and matches existing patterns.
-- Auth — endpoints remain admin-key based like today's `voice_orders`.
+- Auth-based role gating (no real retailer auth yet; today the shopkeeper screen is reached by role toggle — same as current behavior).
+- SQLite (incompatible with Worker runtime; Postgres already satisfies the "real DB + sync" requirement).
+- Realtime channels (2s polling already gives cross-device sync — verified by the existing flow).
 
-## Why polling, not realtime
-The existing shopkeeper screen already polls every 900ms and the customer pending section every 2s. Keeping that pattern means no new client wiring and immediate cross-device sync once the store is the DB.
+## Validation
+1. Phone A (customer) creates a voice order → appears as **Pending credit review** on Phone A and on Phone B (retailer) within ~2s, with trust score + recommendation shown to retailer only.
+2. Retailer approves → Phone A shows **Approved** within ~2s; no buttons visible to customer.
+3. Retailer → Packed → Ready for pickup → Delivered. Phone A status chip updates each time, no refresh.
+4. Customer Orders page has zero mutation controls in any state.

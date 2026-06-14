@@ -2,9 +2,14 @@
 // retailer order views.
 //   GET  ?customerId=...     → that customer's orders (newest first)
 //   GET  (no params)         → latest 50 across all customers (retailer)
-//   POST                     → create order (from quick voice or in-app call)
+//   POST                     → create order (voice / quick voice / in-app call)
+//                              Always lands as `pending_credit_review`.
+//                              Runs financial brain to produce
+//                              trust_score / credit_recommendation /
+//                              decision_reason (advisory, retailer decides).
 import { createFileRoute } from "@tanstack/react-router";
 import { extractOrderFromTranscript } from "@/lib/khataos/order-extractor.server";
+import { runFinancialBrain } from "@/lib/khataos/financial-brain.server";
 
 type Item = { name: string; quantity: number; unit?: string; estimatedPrice?: number };
 type CreateBody = {
@@ -18,8 +23,18 @@ type CreateBody = {
   transcript?: string;
   callId?: string;
   retailerId?: string;
-  status?: "pending_approval" | "approved";
   reasoning?: string;
+};
+
+// Minimal demo customer registry — mirrors src/lib/khataos/data.ts seed.
+// Used so the financial brain can score orders even when the caller
+// (Twilio webhook, voice screen) doesn't carry full customer financials.
+const CUSTOMER_PROFILES: Record<string, { trustScore: number; outstanding: number; creditLimit: number; reliability: number }> = {
+  c_me: { trustScore: 82, outstanding: 1850, creditLimit: 5000, reliability: 91 },
+  c_p1: { trustScore: 94, outstanding: 0, creditLimit: 8000, reliability: 98 },
+  c_s1: { trustScore: 71, outstanding: 2200, creditLimit: 4000, reliability: 78 },
+  c_a1: { trustScore: 58, outstanding: 2850, creditLimit: 3000, reliability: 62 },
+  c_m1: { trustScore: 88, outstanding: 3400, creditLimit: 10000, reliability: 92 },
 };
 
 export const Route = createFileRoute("/api/khataos/orders")({
@@ -29,7 +44,7 @@ export const Route = createFileRoute("/api/khataos/orders")({
         const url = new URL(request.url);
         const customerId = url.searchParams.get("customerId");
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        let q = supabaseAdmin.from("orders").select("*").order("created_at", { ascending: false }).limit(customerId ? 50 : 50);
+        let q = supabaseAdmin.from("orders").select("*").order("created_at", { ascending: false }).limit(50);
         if (customerId) q = q.eq("customer_id", customerId);
         const { data, error } = await q;
         if (error) {
@@ -47,7 +62,7 @@ export const Route = createFileRoute("/api/khataos/orders")({
           return new Response("Missing customerId/customerName/source", { status: 400 });
         }
 
-        // If transcript present but no items, try Gemini extraction.
+        // Gemini extraction from transcript when items absent.
         let items = Array.isArray(body.items) ? body.items : [];
         let amount = body.amount;
         let reasoning = body.reasoning;
@@ -66,6 +81,29 @@ export const Route = createFileRoute("/api/khataos/orders")({
           amount = items.reduce((s, it) => s + (it.estimatedPrice ?? 0) * (it.quantity ?? 1), 0);
         }
 
+        // Financial brain — advisory recommendation for the retailer.
+        const prof = CUSTOMER_PROFILES[body.customerId] ?? { trustScore: 70, outstanding: 0, creditLimit: 3000, reliability: 75 };
+        let trustScore: number | null = prof.trustScore;
+        let creditRecommendation: string | null = null;
+        let decisionReason: string | null = null;
+        try {
+          const brain = await runFinancialBrain({
+            intent: "KHATA_ORDER",
+            customerName: body.customerName,
+            trustScore: prof.trustScore,
+            outstanding: prof.outstanding,
+            creditLimit: prof.creditLimit,
+            requestedAmount: amount ?? 0,
+            reliability: prof.reliability,
+          });
+          // Map brain decision → recommendation label.
+          creditRecommendation = brain.decision === "approve" ? "approve"
+            : brain.decision === "reject" ? "reject" : "review";
+          decisionReason = brain.reasoning;
+        } catch (e) {
+          console.error("[orders] financial brain failed", e);
+        }
+
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data, error } = await supabaseAdmin.from("orders").insert({
           customer_id: body.customerId,
@@ -78,8 +116,11 @@ export const Route = createFileRoute("/api/khataos/orders")({
           amount,
           language: body.language,
           transcript: body.transcript,
-          status: body.status ?? "pending_approval",
+          status: "pending_credit_review",
           reasoning,
+          trust_score: trustScore,
+          credit_recommendation: creditRecommendation,
+          decision_reason: decisionReason,
         }).select("*").single();
         if (error) {
           console.error("[orders] insert failed", error);

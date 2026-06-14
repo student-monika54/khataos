@@ -100,11 +100,10 @@ function VoiceAgent() {
           phone: me.phone,
           transcript: text,
           language: detected,
-          status: "pending_approval",
         }),
       }).then(async (r) => {
         if (r.ok) {
-          setMessages((m) => [...m, { role: "agent", text: "Draft order ready — check My Orders to approve." }]);
+          setMessages((m) => [...m, { role: "agent", text: "Order sent to the shop for review — track it in My Orders." }]);
         }
       }).catch(() => {});
     } catch (e) {

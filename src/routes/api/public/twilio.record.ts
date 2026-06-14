@@ -253,7 +253,7 @@ export const Route = createFileRoute("/api/public/twilio/record")({
               amount,
               language: ctxOut.commerce.language,
               transcript,
-              status: "pending_approval",
+              status: "pending_credit_review",
               reasoning: extracted?.summary ?? ctxOut.financial.reasoning,
             });
             if (insErr) console.error("[twilio.record] orders insert", insErr);
