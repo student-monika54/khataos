@@ -68,9 +68,17 @@ function CallScreen() {
     recRef.current = r;
   }, [lang]);
 
+  function startListening() {
+    if (!recRef.current || voiceBusy || voiceListening) return;
+    transcriptRef.current = "";
+    recRef.current.lang = LANG_LABEL[lang].code;
+    setVoiceListening(true);
+    try { recRef.current.start(); } catch { setVoiceListening(false); }
+  }
+
   async function submitVoiceOrder(text: string) {
     setVoiceBusy(true);
-    say(text);
+    say(`Got it: ${text}`);
     try {
       const res = await fetch("/api/khataos/orders", {
         method: "POST",
@@ -90,26 +98,25 @@ function CallScreen() {
         const lines = Array.isArray(created?.items)
           ? created.items.map((it: any) => `${it.quantity} ${it.unit ?? "pcs"} ${it.name}`).join(", ")
           : "";
-        say(lines ? `Got it — ${lines}. Sent to your shopkeeper for approval.` : "Order sent. Track it in My Orders.");
+        say(lines ? `Order placed: ${lines}. Sent for approval.` : "Order sent.");
       } else if (res.status === 422) {
-        say("I didn't catch any items. Please say what you need, like '2 kg rice and 1 litre oil'.");
+        say("No items detected. Try: 2 kg rice and 1 litre oil.");
       } else {
-        say("Couldn't save your order. Please try again.");
+        say("Couldn't save. Try again.");
       }
     } catch {
-      say("Network error. Please try again.");
+      say("Network error.");
     } finally {
       setVoiceBusy(false);
+      // Auto-restart listening for the next order — Quick Voice feel.
+      setTimeout(() => startListening(), 1400);
     }
   }
 
   function toggleVoice() {
     if (!recRef.current || voiceBusy) return;
     if (voiceListening) { try { recRef.current.stop(); } catch {} return; }
-    transcriptRef.current = "";
-    recRef.current.lang = LANG_LABEL[lang].code;
-    setVoiceListening(true);
-    try { recRef.current.start(); } catch { setVoiceListening(false); }
+    startListening();
   }
 
 
@@ -141,9 +148,13 @@ function CallScreen() {
     const data = await res.json();
     setCallId(data.callId);
     startedAt.current = Date.now();
-    speak(meta.mainMenu, LANG_LABEL[code].code);
-    setLastReply(meta.mainMenu);
+    const prompt = "Speak your order.";
+    speak(prompt, LANG_LABEL[code].code);
+    setLastReply(prompt);
+    // Quick Voice feel: auto-start mic right after greeting.
+    setTimeout(() => startListening(), 600);
   }
+
 
   function backToMenu() {
     setDecision(null);
