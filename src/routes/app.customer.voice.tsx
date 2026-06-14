@@ -88,24 +88,33 @@ function VoiceAgent() {
       }
       speak(reply, detected);
 
-      // Try to parse this utterance as an order via Gemini and queue it
-      // for the customer's approval. Fire-and-forget; ignore "no items".
-      fetch("/api/khataos/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source: "quick_voice",
-          customerId: me.id,
-          customerName: me.name,
-          phone: me.phone,
-          transcript: text,
-          language: detected,
-        }),
-      }).then(async (r) => {
-        if (r.ok) {
-          setMessages((m) => [...m, { role: "agent", text: "Order sent to the shop for review — track it in My Orders." }]);
+      // Try to parse this utterance as an order via Gemini and persist it.
+      // Await so the user gets clear feedback whether items were detected.
+      try {
+        const orderRes = await fetch("/api/khataos/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            source: "quick_voice",
+            customerId: me.id,
+            customerName: me.name,
+            phone: me.phone,
+            transcript: text,
+            language: detected,
+          }),
+        });
+        if (orderRes.ok) {
+          const created = await orderRes.json();
+          const lines = Array.isArray(created?.items)
+            ? created.items.map((it: any) => `${it.quantity} ${it.unit ?? "pcs"} ${it.name}`).join(", ")
+            : "";
+          setMessages((m) => [...m, {
+            role: "agent",
+            text: `Order saved${lines ? `: ${lines}` : ""}. Track it in My Orders.`,
+          }]);
         }
-      }).catch(() => {});
+        // 422 = no items detected → silently ignore (was a non-order utterance).
+      } catch {/* network – ignore */}
     } catch (e) {
       const err = "Network error — please try again.";
       setMessages((m) => [...m, { role: "agent", text: err }]);
