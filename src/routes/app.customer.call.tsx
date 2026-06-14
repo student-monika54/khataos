@@ -148,9 +148,11 @@ function CallScreen() {
     const data = await res.json();
     setCallId(data.callId);
     startedAt.current = Date.now();
-    speak(meta.mainMenu, LANG_LABEL[code].code);
-    setLastReply(meta.mainMenu);
-  }
+    const prompt = "Speak your order.";
+    speak(prompt, LANG_LABEL[code].code);
+    setLastReply(prompt);
+    // Quick Voice feel: auto-start mic right after greeting.
+    setTimeout(() => startListening(), 600);
 
   function backToMenu() {
     setDecision(null);
