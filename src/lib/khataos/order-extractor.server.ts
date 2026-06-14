@@ -68,7 +68,7 @@ export async function extractOrderFromTranscript(transcript: string): Promise<Ex
       system:
         "You are a kirana store order parser. Given an English transcript of a customer's voice order, extract every distinct grocery item with a numeric quantity and a unit (kg, g, L, ml, packet, pcs, dozen, etc.). " +
         "Each item object must use the key name for the product name. If you accidentally think of the key as item, still output name. " +
-        "Use typical Indian kirana prices (rice ~60/kg, sugar ~45/kg, oil ~150/L, atta ~50/kg, milk ~60/L, dal ~120/kg, biscuits ~20/packet, soap ~30/pc) for estimatedPrice; totalEstimate is the sum. " +
+        "Use typical Indian kirana prices for estimatedPrice (INR per unit): rice 60/kg, sugar 45/kg, jaggery 80/kg, oil 140/L, ghee 600/kg, butter 60/pcs, paneer 350/kg, curd 80/kg, atta 50/kg, maida 55/kg, milk 60/L, dal 140/kg, biscuits 30/pack, soap 30/pc, shampoo 90/pc, toothpaste 75/pc, detergent 120/pack, salt 25/kg, onion 40/kg, potato 35/kg, tomato 40/kg, chilli 80/kg, garlic 200/kg, ginger 120/kg, turmeric 250/kg, masala 60/pack, noodles 15/pack, eggs 8/pc, tea 120/pack, coffee 180/pack, bread 45/pcs. ALWAYS include an estimatedPrice — never leave it null. totalEstimate is the sum of quantity*estimatedPrice. " +
         "summary is a one-line natural recap like '2 kg rice, 1 L oil — ₹270 est'. If no clear items, return items: [].",
       prompt: `Transcript: """${transcript}"""`,
     });
