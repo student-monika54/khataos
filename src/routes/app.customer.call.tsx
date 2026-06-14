@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppHeader, AppScreen, Section } from "@/components/app/AppShell";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TwilioDialer } from "@/components/app/TwilioDialer";
-import { useKhata, formatINR } from "@/lib/khataos/data";
+import { useKhata, formatINR, recordCreditPurchase } from "@/lib/khataos/data";
 import { Mic, PhoneOff, Phone, ArrowLeft, Plus, Minus, Check, ShoppingCart, CreditCard, Wallet, Truck, Calendar, X } from "lucide-react";
 import { CATALOG, type Sku } from "@/lib/khataos/catalog";
 import { voiceMenu } from "@/lib/khataos/voice-menu";
