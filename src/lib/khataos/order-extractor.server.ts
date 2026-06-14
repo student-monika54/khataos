@@ -74,15 +74,26 @@ export async function extractOrderFromTranscript(transcript: string): Promise<Ex
     });
     if (!experimental_output) return null;
     const items = experimental_output.items
-      .map((i) => ({
-        name: (i.name ?? i.item ?? "").trim(),
-        quantity: i.quantity,
-        unit: i.unit,
-        estimatedPrice: i.estimatedPrice ?? i.estimatedUnitPrice,
-      }))
+      .map((i) => {
+        const name = (i.name ?? i.item ?? "").trim();
+        let estimatedPrice = i.estimatedPrice ?? i.estimatedUnitPrice;
+        let unit = i.unit;
+        if (!estimatedPrice || estimatedPrice <= 0) {
+          const sku = CATALOG.find((s) =>
+            s.aliases.some((a) => name.toLowerCase().includes(a)) ||
+            s.name.toLowerCase() === name.toLowerCase()
+          );
+          if (sku) {
+            estimatedPrice = sku.pricePerUnit;
+            unit = unit ?? sku.unit;
+          }
+        }
+        return { name, quantity: i.quantity, unit: unit ?? "pcs", estimatedPrice };
+      })
       .filter((i) => i.name.length > 0);
     const parsed = OrderSchema.parse({ ...experimental_output, items });
-    parsed.totalEstimate = parsed.totalEstimate ?? items.reduce((sum, i) => sum + i.quantity * (i.estimatedPrice ?? 0), 0);
+    const computedTotal = items.reduce((sum, i) => sum + i.quantity * (i.estimatedPrice ?? 0), 0);
+    parsed.totalEstimate = computedTotal > 0 ? computedTotal : (parsed.totalEstimate ?? 0);
     return parsed;
   } catch (e) {
     console.warn("[order-extractor] AI parse fallback", e);
