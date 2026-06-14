@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useKhata, formatINR, recordRepayment } from "@/lib/khataos/data";
+import { useKhata, formatINR, recordRepayment, recordCreditPurchase } from "@/lib/khataos/data";
 import { AppHeader, AppScreen, StatCard, Section } from "@/components/app/AppShell";
 import { useEffect, useRef, useState } from "react";
 import { Mic, Square, Volume2, Loader2, Sparkles } from "lucide-react";
