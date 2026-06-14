@@ -113,8 +113,14 @@ function VoiceAgent() {
             text: `Order saved${lines ? `: ${lines}` : ""}. Track it in My Orders.`,
           }]);
         }
-        // 422 = no items detected → silently ignore (was a non-order utterance).
+        else if (orderRes.status === 422) {
+          setMessages((m) => [...m, {
+            role: "agent",
+            text: "I couldn't detect items in that. Try: '2 kg rice and 1 litre oil'.",
+          }]);
+        }
       } catch {/* network – ignore */}
+
     } catch (e) {
       const err = "Network error — please try again.";
       setMessages((m) => [...m, { role: "agent", text: err }]);

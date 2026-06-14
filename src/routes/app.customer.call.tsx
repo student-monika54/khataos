@@ -3,7 +3,7 @@ import { AppHeader, AppScreen, Section } from "@/components/app/AppShell";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { TwilioDialer } from "@/components/app/TwilioDialer";
 import { useKhata, formatINR } from "@/lib/khataos/data";
-import { Mic, PhoneOff, Phone, ArrowLeft, Plus, Minus, Check, ShoppingCart, CreditCard, Wallet, Truck, Calendar, X } from "lucide-react";
+import { Mic, PhoneOff, Phone, ArrowLeft, Plus, Minus, Check, ShoppingCart, CreditCard, Wallet, Truck, Calendar, X, Loader2, Square } from "lucide-react";
 import { CATALOG, type Sku } from "@/lib/khataos/catalog";
 import { voiceMenu } from "@/lib/khataos/voice-menu";
 import type { LangCode } from "@/lib/khataos/ivr";
@@ -42,6 +42,76 @@ function CallScreen() {
   const [creditAmount, setCreditAmount] = useState<number>(500);
   const [decision, setDecision] = useState<{ decision: string; reasoning: string; recommendedAmount?: number; amount?: number } | null>(null);
   const startedAt = useRef<number>(Date.now());
+
+  // Hands-free voice ordering inside the call screen.
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const recRef = useRef<any>(null);
+  const transcriptRef = useRef("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    const r = new SR();
+    r.continuous = false;
+    r.interimResults = false;
+    r.lang = LANG_LABEL[lang].code;
+    r.onresult = (e: any) => { transcriptRef.current = e.results[0][0].transcript; };
+    r.onerror = () => setVoiceListening(false);
+    r.onend = () => {
+      setVoiceListening(false);
+      const t = transcriptRef.current.trim();
+      transcriptRef.current = "";
+      if (t) submitVoiceOrder(t);
+    };
+    recRef.current = r;
+  }, [lang]);
+
+  async function submitVoiceOrder(text: string) {
+    setVoiceBusy(true);
+    say(text);
+    try {
+      const res = await fetch("/api/khataos/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "in_app_call",
+          customerId: me.id,
+          customerName: me.name,
+          phone: me.phone,
+          callId,
+          transcript: text,
+          language: LANG_LABEL[lang].en,
+        }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        const lines = Array.isArray(created?.items)
+          ? created.items.map((it: any) => `${it.quantity} ${it.unit ?? "pcs"} ${it.name}`).join(", ")
+          : "";
+        say(lines ? `Got it — ${lines}. Sent to your shopkeeper for approval.` : "Order sent. Track it in My Orders.");
+      } else if (res.status === 422) {
+        say("I didn't catch any items. Please say what you need, like '2 kg rice and 1 litre oil'.");
+      } else {
+        say("Couldn't save your order. Please try again.");
+      }
+    } catch {
+      say("Network error. Please try again.");
+    } finally {
+      setVoiceBusy(false);
+    }
+  }
+
+  function toggleVoice() {
+    if (!recRef.current || voiceBusy) return;
+    if (voiceListening) { try { recRef.current.stop(); } catch {} return; }
+    transcriptRef.current = "";
+    recRef.current.lang = LANG_LABEL[lang].code;
+    setVoiceListening(true);
+    try { recRef.current.start(); } catch { setVoiceListening(false); }
+  }
+
 
   const m = useMemo(() => voiceMenu(lang), [lang]);
   const total = cart.reduce((s, l) => s + l.qty * l.price, 0);
@@ -270,6 +340,27 @@ function CallScreen() {
               {lastReply}
             </div>
           )}
+
+          {/* Hands-free: speak your order, AI extracts items and files it. */}
+          <button
+            onClick={toggleVoice}
+            disabled={voiceBusy}
+            className={`w-full rounded-2xl border p-4 flex items-center gap-3 transition ${
+              voiceListening ? "border-emerald bg-emerald/15" : "border-emerald/30 bg-emerald/[0.06] hover:border-emerald/60"
+            } ${voiceBusy ? "opacity-60" : ""}`}
+          >
+            <div className={`relative grid h-12 w-12 place-items-center rounded-full ${voiceListening ? "bg-emerald text-[#06140b]" : "bg-emerald/20 text-emerald"}`}>
+              {voiceListening && <span className="absolute inset-0 rounded-full bg-emerald/40 animate-ping" />}
+              {voiceBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : voiceListening ? <Square className="h-5 w-5" fill="currentColor" /> : <Mic className="h-5 w-5" />}
+            </div>
+            <div className="text-left">
+              <div className="font-semibold text-[14px]">
+                {voiceBusy ? "Sending to shopkeeper…" : voiceListening ? "Listening… speak your order" : "Speak your order"}
+              </div>
+              <div className="text-[11px] text-ink-muted">e.g. "2 kg rice and 1 litre oil" · adds to My Orders instantly</div>
+            </div>
+          </button>
+
           <div className="grid grid-cols-2 gap-2.5">
             {items.map((it, idx) => (
               <button key={it.key} onClick={it.onClick}
