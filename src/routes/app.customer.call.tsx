@@ -340,6 +340,27 @@ function CallScreen() {
               {lastReply}
             </div>
           )}
+
+          {/* Hands-free: speak your order, AI extracts items and files it. */}
+          <button
+            onClick={toggleVoice}
+            disabled={voiceBusy}
+            className={`w-full rounded-2xl border p-4 flex items-center gap-3 transition ${
+              voiceListening ? "border-emerald bg-emerald/15" : "border-emerald/30 bg-emerald/[0.06] hover:border-emerald/60"
+            } ${voiceBusy ? "opacity-60" : ""}`}
+          >
+            <div className={`relative grid h-12 w-12 place-items-center rounded-full ${voiceListening ? "bg-emerald text-[#06140b]" : "bg-emerald/20 text-emerald"}`}>
+              {voiceListening && <span className="absolute inset-0 rounded-full bg-emerald/40 animate-ping" />}
+              {voiceBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : voiceListening ? <Square className="h-5 w-5" fill="currentColor" /> : <Mic className="h-5 w-5" />}
+            </div>
+            <div className="text-left">
+              <div className="font-semibold text-[14px]">
+                {voiceBusy ? "Sending to shopkeeper…" : voiceListening ? "Listening… speak your order" : "Speak your order"}
+              </div>
+              <div className="text-[11px] text-ink-muted">e.g. "2 kg rice and 1 litre oil" · adds to My Orders instantly</div>
+            </div>
+          </button>
+
           <div className="grid grid-cols-2 gap-2.5">
             {items.map((it, idx) => (
               <button key={it.key} onClick={it.onClick}
