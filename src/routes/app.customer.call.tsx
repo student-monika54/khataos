@@ -24,6 +24,8 @@ function speak(text: string, langCode: string) {
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = langCode;
+  u.rate = 1.25;
+  u.pitch = 1;
   window.speechSynthesis.speak(u);
 }
 
@@ -135,7 +137,7 @@ function CallScreen() {
       }),
     }).catch(() => {});
 
-    setTimeout(() => { say(reply); setBusy(false); setCart([]); }, 900);
+    setTimeout(() => { say(reply); setBusy(false); setCart([]); }, 250);
   }
 
   function checkBalance() {
