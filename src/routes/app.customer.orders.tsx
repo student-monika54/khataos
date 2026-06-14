@@ -367,6 +367,9 @@ function PendingApprovalSection({ customerId }: { customerId: string }) {
       </ul>
     </Section>
   );
+}
+
+
 
 
 function EmptyState() {
