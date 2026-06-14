@@ -78,7 +78,6 @@ function CallScreen() {
 
   async function submitVoiceOrder(text: string) {
     setVoiceBusy(true);
-    say(`Got it: ${text}`);
     try {
       const res = await fetch("/api/khataos/orders", {
         method: "POST",
@@ -95,21 +94,25 @@ function CallScreen() {
       });
       if (res.ok) {
         const created = await res.json();
-        const lines = Array.isArray(created?.items)
-          ? created.items.map((it: any) => `${it.quantity} ${it.unit ?? "pcs"} ${it.name}`).join(", ")
-          : "";
-        say(lines ? `Order placed: ${lines}. Sent for approval.` : "Order sent.");
+        const items: Array<{ name: string; quantity: number; unit?: string }> =
+          Array.isArray(created?.items) ? created.items : [];
+        const lines = items
+          .map((it) => `${it.quantity} ${it.unit ?? "pieces"} ${it.name}`)
+          .join(" and ");
+        say(lines
+          ? `Your order for ${lines} has been received and sent for approval. Anything else?`
+          : "Order sent for approval. Anything else?");
       } else if (res.status === 422) {
-        say("No items detected. Try: 2 kg rice and 1 litre oil.");
+        say("I didn't catch any items. Try: 2 kg rice and 1 litre oil.");
       } else {
-        say("Couldn't save. Try again.");
+        say("Couldn't save that. Please try again.");
       }
     } catch {
-      say("Network error.");
+      say("Network error. Please try again.");
     } finally {
       setVoiceBusy(false);
-      // Auto-restart listening for the next order — Quick Voice feel.
-      setTimeout(() => startListening(), 1400);
+      // Auto-restart listening so the customer can add more — no menu replay.
+      setTimeout(() => startListening(), 800);
     }
   }
 
