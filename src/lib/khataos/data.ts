@@ -134,6 +134,7 @@ function seed(): KhataState {
 
 let cache: KhataState | null = null;
 const listeners = new Set<() => void>();
+const serverSnapshot = seed();
 
 function read(): KhataState {
   if (cache) return cache;
@@ -171,7 +172,7 @@ export function useKhata<T>(selector: (s: KhataState) => T): T {
       return () => listeners.delete(cb);
     },
     () => selector(read()),
-    () => selector(seed()),
+    () => selector(serverSnapshot),
   );
 }
 
