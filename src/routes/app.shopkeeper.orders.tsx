@@ -1,7 +1,7 @@
-// Incoming Orders — the operational heart of the shopkeeper app.
-// Shows every order arriving from the KhataOS voice agent, grouped by
-// stage: New → Pending Credit → Approved → Ready for Fulfillment →
-// Completed. Updates in real time via the live-orders polling endpoint.
+// Incoming Orders — retailer dashboard. DB-backed, polls every ~1s.
+// The retailer is the ONLY actor that can approve, reject, or advance an
+// order through the fulfillment pipeline. Customers see status updates
+// here in real time on their own Orders screen.
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -9,33 +9,42 @@ import { AppHeader, AppScreen, Section } from "@/components/app/AppShell";
 import { useKhata, formatINR, setOrderStatus } from "@/lib/khataos/data";
 import type { Order } from "@/lib/khataos/data";
 import {
-  Phone, Sparkles, CheckCircle2, XCircle, Loader2, AlertCircle, Volume2,
-  Package as PackageIcon,
+  Phone, Sparkles, CheckCircle2, XCircle, Loader2, ShieldCheck,
+  Package as PackageIcon, PackageCheck, Truck, Volume2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/shopkeeper/orders")({
   component: IncomingOrders,
 });
 
-type LiveStage =
-  | "listening" | "processing" | "checking_credit"
-  | "approved" | "rejected" | "conditional" | "ready_for_fulfillment";
-type LiveItem = { name: string; quantity: string };
-type DbStatus = "pending_approval" | "approved" | "packed" | "ready" | "delivered" | "rejected";
-type LiveOrder = {
-  id: string; orderId?: string; callId: string; customerId: string; customerName: string; phone?: string;
-  items: LiveItem[]; amount?: number; trustScore?: number;
-  outstanding?: number; creditLimit?: number;
-  stage: LiveStage; status?: DbStatus; decision?: "approve" | "reject" | "conditional";
-  reasoning?: string; language?: string; createdAt: number; updatedAt: number;
+type Status =
+  | "pending_credit_review" | "approved" | "rejected"
+  | "packed" | "ready_for_pickup" | "delivered";
+
+type DbOrder = {
+  id: string;
+  customer_id: string;
+  customer_name: string;
+  phone: string | null;
+  source: string;
+  items: { name: string; quantity: number; unit?: string; estimatedPrice?: number }[];
+  amount: number | null;
+  language: string | null;
+  status: Status;
+  reasoning: string | null;
+  trust_score: number | null;
+  credit_recommendation: string | null;
+  decision_reason: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
-const BUCKETS: { key: string; title: string; match: (s: LiveStage) => boolean; tone: string }[] = [
-  { key: "new", title: "New voice orders", match: (s) => s === "listening" || s === "processing", tone: "text-emerald" },
-  { key: "credit", title: "Pending credit approval", match: (s) => s === "checking_credit", tone: "text-amber-300" },
-  { key: "approved", title: "Approved", match: (s) => s === "approved", tone: "text-emerald" },
-  { key: "rejected", title: "Rejected", match: (s) => s === "rejected", tone: "text-destructive" },
-  { key: "ready", title: "Ready for fulfillment", match: (s) => s === "ready_for_fulfillment", tone: "text-emerald" },
+const BUCKETS: { key: string; title: string; statuses: Status[] }[] = [
+  { key: "review", title: "Pending credit review", statuses: ["pending_credit_review"] },
+  { key: "approved", title: "Approved · ready to pack", statuses: ["approved"] },
+  { key: "packed", title: "Packed", statuses: ["packed"] },
+  { key: "ready", title: "Ready for pickup", statuses: ["ready_for_pickup"] },
+  { key: "done", title: "Delivered & rejected", statuses: ["delivered", "rejected"] },
 ];
 
 function playChime() {
@@ -55,7 +64,7 @@ function playChime() {
 }
 
 function IncomingOrders() {
-  const [live, setLive] = useState<LiveOrder[]>([]);
+  const [orders, setOrders] = useState<DbOrder[]>([]);
   const [flashId, setFlashId] = useState<string | null>(null);
   const known = useRef<Set<string>>(new Set());
   const first = useRef(true);
@@ -64,10 +73,10 @@ function IncomingOrders() {
     let mounted = true;
     async function poll() {
       try {
-        const r = await fetch("/api/khataos/orders/live");
+        const r = await fetch("/api/khataos/orders");
         if (!r.ok) return;
-        const data: LiveOrder[] = await r.json();
-        if (!mounted) return;
+        const data: DbOrder[] = await r.json();
+        if (!mounted || !Array.isArray(data)) return;
         if (!first.current) {
           const fresh = data.filter((o) => !known.current.has(o.id));
           if (fresh.length > 0) {
@@ -78,35 +87,34 @@ function IncomingOrders() {
         }
         data.forEach((o) => known.current.add(o.id));
         first.current = false;
-        setLive(data);
+        setOrders(data);
       } catch {}
     }
     poll();
-    const id = setInterval(poll, 900);
+    const id = setInterval(poll, 1500);
     return () => { mounted = false; clearInterval(id); };
   }, []);
 
   const grouped = useMemo(() => {
-    const map: Record<string, LiveOrder[]> = {};
+    const map: Record<string, DbOrder[]> = {};
     for (const b of BUCKETS) map[b.key] = [];
-    for (const o of live) {
-      const b = BUCKETS.find((x) => x.match(o.stage));
+    for (const o of orders) {
+      const b = BUCKETS.find((x) => x.statuses.includes(o.status));
       if (b) map[b.key].push(o);
     }
     return map;
-  }, [live]);
+  }, [orders]);
 
-  const totalLive = live.length;
-  const inFlight = live.filter((o) => o.stage === "checking_credit" || o.stage === "processing").length;
+  const totalLive = orders.length;
+  const inReview = orders.filter((o) => o.status === "pending_credit_review").length;
 
   return (
     <AppScreen>
       <AppHeader
         title="Incoming Orders"
-        subtitle={totalLive > 0 ? `${totalLive} from voice agent · ${inFlight} in progress` : "Live from the KhataOS voice agent"}
+        subtitle={totalLive > 0 ? `${totalLive} total · ${inReview} awaiting your review` : "Live from the KhataOS voice agent"}
       />
 
-      {/* Pipeline overview */}
       <div className="px-4 pt-4">
         <div className="rounded-2xl border border-emerald/30 bg-gradient-to-br from-emerald/10 to-emerald/[0.02] p-4">
           <div className="flex items-center gap-2">
@@ -114,7 +122,7 @@ function IncomingOrders() {
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald">Real-time pipeline</span>
           </div>
           <ol className="mt-3 grid grid-cols-5 gap-1 text-center text-[10px] text-ink-muted">
-            {["Call", "Extracted", "Credit", "Decision", "Fulfill"].map((s) => (
+            {["Review", "Approve", "Pack", "Ready", "Deliver"].map((s) => (
               <li key={s} className="flex flex-col items-center gap-1">
                 <span className="h-1.5 w-full rounded-full bg-emerald/40" />
                 <span>{s}</span>
@@ -140,7 +148,7 @@ function IncomingOrders() {
             <Section key={b.key} title={`${b.title} · ${list.length}`}>
               <ul className="space-y-2.5">
                 {list.map((o) => (
-                  <LiveOrderCard key={o.id} o={o} flash={flashId === o.id} />
+                  <OrderCard key={o.id} o={o} flash={flashId === o.id} />
                 ))}
               </ul>
             </Section>
@@ -153,14 +161,29 @@ function IncomingOrders() {
   );
 }
 
-function LiveOrderCard({ o, flash }: { o: LiveOrder; flash: boolean }) {
-  const approved = o.stage === "approved" || o.stage === "ready_for_fulfillment";
-  const rejected = o.stage === "rejected";
-  const conditional = o.stage === "conditional";
+const STATUS_LABEL: Record<Status, { label: string; tint: string; icon: any }> = {
+  pending_credit_review: { label: "Pending credit review", tint: "text-amber-300", icon: Loader2 },
+  approved: { label: "Approved", tint: "text-emerald", icon: ShieldCheck },
+  rejected: { label: "Rejected", tint: "text-destructive", icon: XCircle },
+  packed: { label: "Packed", tint: "text-emerald", icon: PackageIcon },
+  ready_for_pickup: { label: "Ready for pickup", tint: "text-emerald", icon: PackageCheck },
+  delivered: { label: "Delivered", tint: "text-ink-muted", icon: Truck },
+};
+
+const REC_TINT: Record<string, string> = {
+  approve: "bg-emerald/15 text-emerald border-emerald/30",
+  review: "bg-amber-400/15 text-amber-300 border-amber-400/30",
+  reject: "bg-destructive/15 text-destructive border-destructive/30",
+};
+
+function OrderCard({ o, flash }: { o: DbOrder; flash: boolean }) {
+  const meta = STATUS_LABEL[o.status];
+  const Icon = meta.icon;
+  const spin = o.status === "pending_credit_review";
   const ring = flash ? "ring-2 ring-emerald shadow-[0_0_24px_rgba(16,185,129,0.35)]" : "";
-  const border = approved ? "border-emerald/50 bg-emerald/[0.06]"
-    : rejected ? "border-destructive/50 bg-destructive/[0.06]"
-    : conditional ? "border-amber-500/50 bg-amber-500/[0.06]"
+  const border = o.status === "pending_credit_review" ? "border-amber-400/50 bg-amber-400/[0.05]"
+    : o.status === "rejected" ? "border-destructive/50 bg-destructive/[0.06]"
+    : o.status === "delivered" ? "border-border bg-elevated/40 opacity-80"
     : "border-emerald/30 bg-elevated/70";
 
   return (
@@ -169,109 +192,110 @@ function LiveOrderCard({ o, flash }: { o: LiveOrder; flash: boolean }) {
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <Sparkles className="h-3 w-3 text-emerald" />
-            <span className="text-[10px] uppercase tracking-[0.14em] text-emerald font-semibold">Voice order</span>
+            <span className="text-[10px] uppercase tracking-[0.14em] text-emerald font-semibold">
+              {o.source.replace(/_/g, " ")}
+            </span>
             {flash && <Volume2 className="h-3 w-3 text-emerald animate-pulse" />}
           </div>
-          <div className="mt-0.5 font-display text-[14px] font-semibold truncate">{o.customerName}</div>
+          <div className="mt-0.5 font-display text-[14px] font-semibold truncate">{o.customer_name}</div>
           {o.phone && <div className="text-[10.5px] text-ink-muted truncate">{o.phone}</div>}
         </div>
         <div className="text-right">
-          <div className="font-display text-[15px] font-semibold">{o.amount ? formatINR(o.amount) : "—"}</div>
-          {o.trustScore != null && <div className="text-[10px] text-emerald font-semibold">Trust {o.trustScore}</div>}
+          <div className="font-display text-[15px] font-semibold">{o.amount != null ? formatINR(Number(o.amount)) : "—"}</div>
+          {o.trust_score != null && (
+            <div className="text-[10px] text-emerald font-semibold">Trust {Math.round(Number(o.trust_score))}</div>
+          )}
         </div>
       </div>
 
       <ul className="mt-2 flex flex-wrap gap-1.5">
         {o.items.map((it, i) => (
           <li key={i} className="rounded-full bg-surface border border-border px-2 py-0.5 text-[11px]">
-            {it.quantity} {it.name}
+            {it.quantity} {it.unit ?? "pcs"} {it.name}
           </li>
         ))}
       </ul>
 
       <div className="mt-2.5 flex items-center justify-between gap-2">
-        <StageBadge stage={o.stage} />
-        <div className="text-[10px] text-ink-subtle">{new Date(o.createdAt).toLocaleTimeString()}</div>
+        <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${meta.tint}`}>
+          <Icon className={`h-3.5 w-3.5 ${spin ? "animate-spin" : ""}`} />
+          {meta.label}
+        </span>
+        <div className="text-[10px] text-ink-subtle">{new Date(o.created_at).toLocaleTimeString()}</div>
       </div>
 
-      {o.reasoning && (
-        <p className="mt-2 text-[11.5px] leading-snug text-ink-muted">
-          <span className="text-emerald font-semibold">Why: </span>{o.reasoning}
-        </p>
+      {(o.credit_recommendation || o.decision_reason) && (
+        <div className="mt-2 rounded-xl border border-border/60 bg-surface/60 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-ink-subtle">Financial brain</span>
+            {o.credit_recommendation && (
+              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${REC_TINT[o.credit_recommendation] ?? "border-border text-ink-muted"}`}>
+                {o.credit_recommendation}
+              </span>
+            )}
+          </div>
+          {o.decision_reason && (
+            <p className="mt-1 text-[11.5px] leading-snug text-ink-muted">{o.decision_reason}</p>
+          )}
+        </div>
       )}
 
-      <FulfillmentActions o={o} />
+      <ActionButtons orderId={o.id} status={o.status} />
     </li>
   );
 }
 
-const NEXT_DB: Record<DbStatus, { next: DbStatus | null; label: string }> = {
-  pending_approval: { next: null, label: "Waiting for customer" },
+const NEXT_LABEL: Partial<Record<Status, { next: Status; label: string }>> = {
   approved: { next: "packed", label: "Mark packed" },
-  packed: { next: "ready", label: "Mark ready" },
-  ready: { next: "delivered", label: "Mark delivered" },
-  delivered: { next: null, label: "Delivered ✓" },
-  rejected: { next: null, label: "Rejected" },
+  packed: { next: "ready_for_pickup", label: "Mark ready for pickup" },
+  ready_for_pickup: { next: "delivered", label: "Mark delivered" },
 };
 
-function FulfillmentActions({ o }: { o: LiveOrder }) {
+function ActionButtons({ orderId, status }: { orderId: string; status: Status }) {
   const [busy, setBusy] = useState(false);
-  if (!o.orderId || !o.status) return null;
-  const meta = NEXT_DB[o.status];
-  if (!meta.next) {
-    if (o.status === "pending_approval") {
-      return <div className="mt-3 text-center text-[11px] text-amber-300">{meta.label}</div>;
-    }
-    return null;
-  }
-  async function advance() {
+
+  async function send(next: Status) {
     setBusy(true);
     try {
       await fetch("/api/khataos/orders/status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: o.orderId, status: meta.next }),
+        body: JSON.stringify({ id: orderId, status: next }),
       });
     } finally { setBusy(false); }
   }
+
+  if (status === "pending_credit_review") {
+    return (
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={() => send("rejected")}
+          disabled={busy}
+          className="flex-1 rounded-full border border-border bg-surface py-2 text-[12.5px] font-semibold disabled:opacity-50"
+        >
+          Reject
+        </button>
+        <button
+          onClick={() => send("approved")}
+          disabled={busy}
+          className="flex-1 rounded-full bg-emerald py-2 text-[12.5px] font-semibold text-[#06140b] disabled:opacity-50"
+        >
+          {busy ? "Updating…" : "Approve order"}
+        </button>
+      </div>
+    );
+  }
+
+  const step = NEXT_LABEL[status];
+  if (!step) return null;
   return (
     <button
-      onClick={advance}
+      onClick={() => send(step.next)}
       disabled={busy}
       className="mt-3 w-full rounded-full bg-emerald py-2 text-[12.5px] font-semibold text-[#06140b] disabled:opacity-50"
     >
-      {busy ? "Updating…" : meta.label}
+      {busy ? "Updating…" : step.label}
     </button>
-  );
-}
-
-const STAGE_LABEL: Record<LiveStage, string> = {
-  listening: "Listening",
-  processing: "Extracting order",
-  checking_credit: "Checking credit",
-  approved: "Approved",
-  conditional: "Conditional",
-  rejected: "Rejected",
-  ready_for_fulfillment: "Ready for fulfillment",
-};
-
-function StageBadge({ stage }: { stage: LiveStage }) {
-  const map: Record<LiveStage, { icon: any; tint: string }> = {
-    listening: { icon: Loader2, tint: "text-ink-muted" },
-    processing: { icon: Loader2, tint: "text-emerald" },
-    checking_credit: { icon: Loader2, tint: "text-amber-300" },
-    approved: { icon: CheckCircle2, tint: "text-emerald" },
-    ready_for_fulfillment: { icon: CheckCircle2, tint: "text-emerald" },
-    rejected: { icon: XCircle, tint: "text-destructive" },
-    conditional: { icon: AlertCircle, tint: "text-amber-400" },
-  };
-  const { icon: Icon, tint } = map[stage];
-  const spinning = stage === "checking_credit" || stage === "processing" || stage === "listening";
-  return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${tint}`}>
-      <Icon className={`h-3.5 w-3.5 ${spinning ? "animate-spin" : ""}`} />
-      {STAGE_LABEL[stage]}
-    </span>
   );
 }
 
@@ -286,7 +310,7 @@ function CompletedOrders() {
   const { orders, customers } = useKhata((s) => s);
   if (orders.length === 0) return null;
   return (
-    <Section title={`Today's orders · ${orders.length}`}>
+    <Section title={`Counter orders · ${orders.length}`}>
       <ul className="space-y-3">
         {orders.map((o) => {
           const c = customers.find((x) => x.id === o.customerId)!;
