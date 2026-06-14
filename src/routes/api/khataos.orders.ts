@@ -48,9 +48,10 @@ export const Route = createFileRoute("/api/khataos/orders")({
         if (customerId) q = q.eq("customer_id", customerId);
         const { data, error } = await q;
         if (error) {
-          console.error("[orders] list failed", error);
+          console.error("[orders][GET] failed", { customerId, error });
           return Response.json({ error: error.message }, { status: 500 });
         }
+        console.log("[orders][GET]", { customerId: customerId ?? "*", count: data?.length ?? 0 });
         return Response.json(data ?? []);
       },
 
