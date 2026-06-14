@@ -221,6 +221,8 @@ function CustomerOrders() {
         <EmptyState />
       ) : (
         <>
+          <PendingApprovalSection customerId={me.id} />
+
           <Section title="Active orders">
             {active.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-elevated/40 p-5 text-center">
@@ -275,6 +277,100 @@ function CustomerOrders() {
     </AppScreen>
   );
 }
+
+type PendingOrder = {
+  id: string; call_id: string; customer_id: string; customer_name: string; phone: string | null;
+  items: { name: string; quantity: number; unit: string; estimatedPrice?: number }[];
+  amount: number | null; language: string | null; transcript: string | null;
+  status: "pending_approval" | "approved" | "rejected"; reasoning: string | null;
+  created_at: string;
+};
+
+function PendingApprovalSection({ customerId }: { customerId: string }) {
+  const [list, setList] = useState<PendingOrder[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function poll() {
+      try {
+        const r = await fetch(`/api/khataos/voice-orders?customerId=${encodeURIComponent(customerId)}`);
+        if (!r.ok || !mounted) return;
+        const data = await r.json();
+        if (Array.isArray(data) && mounted) setList(data);
+      } catch {}
+    }
+    poll();
+    const id = setInterval(poll, 2000);
+    return () => { mounted = false; clearInterval(id); };
+  }, [customerId]);
+
+  async function decide(id: string, decision: "approve" | "reject") {
+    setBusy(id);
+    try {
+      await fetch("/api/khataos/voice-orders/decision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, decision }),
+      });
+      setList((cur) => cur.map((o) => o.id === id ? { ...o, status: decision === "approve" ? "approved" : "rejected" } : o));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const pending = list.filter((o) => o.status === "pending_approval");
+  if (pending.length === 0) return null;
+
+  return (
+    <Section title={`Awaiting your approval · ${pending.length}`}>
+      <ul className="space-y-3">
+        {pending.map((o) => (
+          <li key={o.id} className="rounded-2xl border border-amber-400/40 bg-amber-400/[0.06] p-4">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3 text-amber-300" />
+              <span className="text-[10px] uppercase tracking-[0.14em] text-amber-300 font-semibold">AI-parsed voice order</span>
+            </div>
+            {o.transcript && (
+              <p className="mt-2 text-[11.5px] italic text-ink-muted line-clamp-2">"{o.transcript}"</p>
+            )}
+            <ul className="mt-2.5 space-y-1">
+              {o.items.map((it, i) => (
+                <li key={i} className="flex justify-between text-[12.5px]">
+                  <span>{it.quantity} {it.unit} {it.name}</span>
+                  {it.estimatedPrice != null && (
+                    <span className="text-ink-muted">{formatINR(it.estimatedPrice)}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {o.amount != null && (
+              <div className="mt-2 flex justify-between border-t border-amber-400/20 pt-2 text-[13px] font-semibold">
+                <span>Estimated total</span>
+                <span>{formatINR(Number(o.amount))}</span>
+              </div>
+            )}
+            <div className="mt-3 flex gap-2">
+              <button
+                disabled={busy === o.id}
+                onClick={() => decide(o.id, "reject")}
+                className="flex-1 rounded-full border border-border bg-surface py-2 text-[12.5px] font-semibold disabled:opacity-50"
+              >Reject</button>
+              <button
+                disabled={busy === o.id}
+                onClick={() => decide(o.id, "approve")}
+                className="flex-1 rounded-full bg-emerald py-2 text-[12.5px] font-semibold text-[#06140b] disabled:opacity-50"
+              >{busy === o.id ? "Sending…" : "Approve & send"}</button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
+
+
 
 function EmptyState() {
   return (

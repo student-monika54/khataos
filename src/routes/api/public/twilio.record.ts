@@ -23,7 +23,7 @@ import {
   type SarvamLangCode,
 } from "@/lib/khataos/sarvam.server";
 import { processTurn } from "@/lib/khataos/orchestrator.server";
-import { patchLiveOrder, publishLiveOrder } from "@/lib/khataos/live-orders.server";
+import { extractOrderFromTranscript } from "@/lib/khataos/order-extractor.server";
 
 async function uploadTtsAndSign(cid: string, audio: Uint8Array): Promise<string> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -227,30 +227,37 @@ export const Route = createFileRoute("/api/public/twilio/record")({
         for (const t of ctxOut.turns) appendTurnServer(cid, t);
         patchCall(cid, { language: ctxOut.commerce.language, currentIntent: ctxOut.commerce.intent, currentAgent: ctxOut.financial.agent });
 
-        // Side-effect: KHATA_ORDER → publish to live-orders pipeline so the
-        // shopkeeper dashboard updates immediately, before the call ends.
+        // KHATA_ORDER → extract structured JSON via Gemini Flash and queue
+        // in the customer's Orders tab as pending_approval. The order only
+        // reaches the shopkeeper after the customer taps Approve.
         if (ctxOut.commerce.intent === "KHATA_ORDER" && ctxOut.commerce.items.length > 0) {
-          const orderId = `lo_${cid}_${Date.now()}`;
-          publishLiveOrder({
-            id: orderId, callId: cid,
-            customerId: call.customerId, customerName: call.customerName, phone: call.phone,
-            items: ctxOut.commerce.items,
-            amount: ctxOut.amount ?? 0,
-            trustScore: 82, outstanding: 1850, creditLimit: 5000,
-            stage: "processing",
-            language: ctxOut.commerce.language,
-            createdAt: Date.now(), updatedAt: Date.now(),
-          });
-          const stage = ctxOut.financial.decision === "approve" ? "ready_for_fulfillment"
-            : ctxOut.financial.decision === "reject" ? "rejected"
-            : ctxOut.financial.decision === "conditional" ? "conditional"
-            : "checking_credit";
-          patchLiveOrder(orderId, {
-            stage,
-            decision: ctxOut.financial.decision === "info" ? undefined : ctxOut.financial.decision,
-            reasoning: ctxOut.financial.reasoning,
-            language: ctxOut.commerce.language,
-          });
+          try {
+            const extracted = await extractOrderFromTranscript(transcript);
+            const items = extracted && extracted.items.length > 0
+              ? extracted.items
+              : ctxOut.commerce.items.map((i) => ({
+                  name: i.name,
+                  quantity: parseFloat(i.quantity) || 1,
+                  unit: i.quantity.replace(/[\d.\s]/g, "") || "pcs",
+                }));
+            const amount = extracted?.totalEstimate ?? ctxOut.amount ?? 0;
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const { error: insErr } = await supabaseAdmin.from("voice_orders").insert({
+              call_id: cid,
+              customer_id: call.customerId,
+              customer_name: call.customerName,
+              phone: call.phone,
+              items,
+              amount,
+              language: ctxOut.commerce.language,
+              transcript,
+              status: "pending_approval",
+              reasoning: extracted?.summary ?? ctxOut.financial.reasoning,
+            });
+            if (insErr) console.error("[twilio.record] voice_orders insert", insErr);
+          } catch (e) {
+            console.error("[twilio.record] extraction/insert failed", e);
+          }
         }
 
         // ===== TTS =====

@@ -29,6 +29,7 @@ import { Route as AppCustomerRepaymentsRouteImport } from './routes/app.customer
 import { Route as AppCustomerOrdersRouteImport } from './routes/app.customer.orders'
 import { Route as AppCustomerCreditRouteImport } from './routes/app.customer.credit'
 import { Route as AppCustomerCallRouteImport } from './routes/app.customer.call'
+import { Route as ApiKhataosVoiceOrdersRouteImport } from './routes/api/khataos.voice-orders'
 import { Route as ApiKhataosOutboundRouteImport } from './routes/api/khataos.outbound'
 import { Route as ApiKhataosHealthRouteImport } from './routes/api/khataos.health'
 import { Route as ApiKhataosCallsRouteImport } from './routes/api/khataos.calls'
@@ -37,6 +38,7 @@ import { Route as ApiPublicTwilioStatusRouteImport } from './routes/api/public/t
 import { Route as ApiPublicTwilioRecordRouteImport } from './routes/api/public/twilio.record'
 import { Route as ApiPublicTwilioMenuRouteImport } from './routes/api/public/twilio.menu'
 import { Route as ApiPublicTwilioGatherRouteImport } from './routes/api/public/twilio.gather'
+import { Route as ApiKhataosVoiceOrdersDecisionRouteImport } from './routes/api/khataos.voice-orders.decision'
 import { Route as ApiKhataosOutboundCancelRouteImport } from './routes/api/khataos.outbound.cancel'
 import { Route as ApiKhataosOrdersLiveRouteImport } from './routes/api/khataos.orders.live'
 
@@ -142,6 +144,11 @@ const AppCustomerCallRoute = AppCustomerCallRouteImport.update({
   path: '/customer/call',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiKhataosVoiceOrdersRoute = ApiKhataosVoiceOrdersRouteImport.update({
+  id: '/voice-orders',
+  path: '/voice-orders',
+  getParentRoute: () => ApiKhataosRoute,
+} as any)
 const ApiKhataosOutboundRoute = ApiKhataosOutboundRouteImport.update({
   id: '/outbound',
   path: '/outbound',
@@ -182,6 +189,12 @@ const ApiPublicTwilioGatherRoute = ApiPublicTwilioGatherRouteImport.update({
   path: '/api/public/twilio/gather',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiKhataosVoiceOrdersDecisionRoute =
+  ApiKhataosVoiceOrdersDecisionRouteImport.update({
+    id: '/decision',
+    path: '/decision',
+    getParentRoute: () => ApiKhataosVoiceOrdersRoute,
+  } as any)
 const ApiKhataosOutboundCancelRoute =
   ApiKhataosOutboundCancelRouteImport.update({
     id: '/cancel',
@@ -202,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
   '/api/khataos/outbound': typeof ApiKhataosOutboundRouteWithChildren
+  '/api/khataos/voice-orders': typeof ApiKhataosVoiceOrdersRouteWithChildren
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/orders': typeof AppCustomerOrdersRoute
@@ -220,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
   '/api/khataos/orders/live': typeof ApiKhataosOrdersLiveRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
+  '/api/khataos/voice-orders/decision': typeof ApiKhataosVoiceOrdersDecisionRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
   '/api/public/twilio/record': typeof ApiPublicTwilioRecordRoute
@@ -233,6 +248,7 @@ export interface FileRoutesByTo {
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
   '/api/khataos/outbound': typeof ApiKhataosOutboundRouteWithChildren
+  '/api/khataos/voice-orders': typeof ApiKhataosVoiceOrdersRouteWithChildren
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/orders': typeof AppCustomerOrdersRoute
@@ -251,6 +267,7 @@ export interface FileRoutesByTo {
   '/app/shopkeeper': typeof AppShopkeeperIndexRoute
   '/api/khataos/orders/live': typeof ApiKhataosOrdersLiveRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
+  '/api/khataos/voice-orders/decision': typeof ApiKhataosVoiceOrdersDecisionRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
   '/api/public/twilio/record': typeof ApiPublicTwilioRecordRoute
@@ -266,6 +283,7 @@ export interface FileRoutesById {
   '/api/khataos/calls': typeof ApiKhataosCallsRoute
   '/api/khataos/health': typeof ApiKhataosHealthRoute
   '/api/khataos/outbound': typeof ApiKhataosOutboundRouteWithChildren
+  '/api/khataos/voice-orders': typeof ApiKhataosVoiceOrdersRouteWithChildren
   '/app/customer/call': typeof AppCustomerCallRoute
   '/app/customer/credit': typeof AppCustomerCreditRoute
   '/app/customer/orders': typeof AppCustomerOrdersRoute
@@ -284,6 +302,7 @@ export interface FileRoutesById {
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
   '/api/khataos/orders/live': typeof ApiKhataosOrdersLiveRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
+  '/api/khataos/voice-orders/decision': typeof ApiKhataosVoiceOrdersDecisionRoute
   '/api/public/twilio/gather': typeof ApiPublicTwilioGatherRoute
   '/api/public/twilio/menu': typeof ApiPublicTwilioMenuRoute
   '/api/public/twilio/record': typeof ApiPublicTwilioRecordRoute
@@ -300,6 +319,7 @@ export interface FileRouteTypes {
     | '/api/khataos/calls'
     | '/api/khataos/health'
     | '/api/khataos/outbound'
+    | '/api/khataos/voice-orders'
     | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/orders'
@@ -318,6 +338,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/'
     | '/api/khataos/orders/live'
     | '/api/khataos/outbound/cancel'
+    | '/api/khataos/voice-orders/decision'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/menu'
     | '/api/public/twilio/record'
@@ -331,6 +352,7 @@ export interface FileRouteTypes {
     | '/api/khataos/calls'
     | '/api/khataos/health'
     | '/api/khataos/outbound'
+    | '/api/khataos/voice-orders'
     | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/orders'
@@ -349,6 +371,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper'
     | '/api/khataos/orders/live'
     | '/api/khataos/outbound/cancel'
+    | '/api/khataos/voice-orders/decision'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/menu'
     | '/api/public/twilio/record'
@@ -363,6 +386,7 @@ export interface FileRouteTypes {
     | '/api/khataos/calls'
     | '/api/khataos/health'
     | '/api/khataos/outbound'
+    | '/api/khataos/voice-orders'
     | '/app/customer/call'
     | '/app/customer/credit'
     | '/app/customer/orders'
@@ -381,6 +405,7 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/'
     | '/api/khataos/orders/live'
     | '/api/khataos/outbound/cancel'
+    | '/api/khataos/voice-orders/decision'
     | '/api/public/twilio/gather'
     | '/api/public/twilio/menu'
     | '/api/public/twilio/record'
@@ -541,6 +566,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomerCallRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/khataos/voice-orders': {
+      id: '/api/khataos/voice-orders'
+      path: '/voice-orders'
+      fullPath: '/api/khataos/voice-orders'
+      preLoaderRoute: typeof ApiKhataosVoiceOrdersRouteImport
+      parentRoute: typeof ApiKhataosRoute
+    }
     '/api/khataos/outbound': {
       id: '/api/khataos/outbound'
       path: '/outbound'
@@ -596,6 +628,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/twilio/gather'
       preLoaderRoute: typeof ApiPublicTwilioGatherRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/khataos/voice-orders/decision': {
+      id: '/api/khataos/voice-orders/decision'
+      path: '/decision'
+      fullPath: '/api/khataos/voice-orders/decision'
+      preLoaderRoute: typeof ApiKhataosVoiceOrdersDecisionRouteImport
+      parentRoute: typeof ApiKhataosVoiceOrdersRoute
     }
     '/api/khataos/outbound/cancel': {
       id: '/api/khataos/outbound/cancel'
@@ -667,10 +706,24 @@ const ApiKhataosOutboundRouteChildren: ApiKhataosOutboundRouteChildren = {
 const ApiKhataosOutboundRouteWithChildren =
   ApiKhataosOutboundRoute._addFileChildren(ApiKhataosOutboundRouteChildren)
 
+interface ApiKhataosVoiceOrdersRouteChildren {
+  ApiKhataosVoiceOrdersDecisionRoute: typeof ApiKhataosVoiceOrdersDecisionRoute
+}
+
+const ApiKhataosVoiceOrdersRouteChildren: ApiKhataosVoiceOrdersRouteChildren = {
+  ApiKhataosVoiceOrdersDecisionRoute: ApiKhataosVoiceOrdersDecisionRoute,
+}
+
+const ApiKhataosVoiceOrdersRouteWithChildren =
+  ApiKhataosVoiceOrdersRoute._addFileChildren(
+    ApiKhataosVoiceOrdersRouteChildren,
+  )
+
 interface ApiKhataosRouteChildren {
   ApiKhataosCallsRoute: typeof ApiKhataosCallsRoute
   ApiKhataosHealthRoute: typeof ApiKhataosHealthRoute
   ApiKhataosOutboundRoute: typeof ApiKhataosOutboundRouteWithChildren
+  ApiKhataosVoiceOrdersRoute: typeof ApiKhataosVoiceOrdersRouteWithChildren
   ApiKhataosOrdersLiveRoute: typeof ApiKhataosOrdersLiveRoute
 }
 
@@ -678,6 +731,7 @@ const ApiKhataosRouteChildren: ApiKhataosRouteChildren = {
   ApiKhataosCallsRoute: ApiKhataosCallsRoute,
   ApiKhataosHealthRoute: ApiKhataosHealthRoute,
   ApiKhataosOutboundRoute: ApiKhataosOutboundRouteWithChildren,
+  ApiKhataosVoiceOrdersRoute: ApiKhataosVoiceOrdersRouteWithChildren,
   ApiKhataosOrdersLiveRoute: ApiKhataosOrdersLiveRoute,
 }
 
