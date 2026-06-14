@@ -481,7 +481,7 @@ function BusinessImpact({ metrics: m }: { metrics: any }) {
 
       <div className="mt-3 rounded-2xl border border-border bg-elevated/40 p-3.5 flex items-center gap-3">
         <div className="grid h-9 w-9 place-items-center rounded-xl bg-emerald/15 text-emerald">
-          <Cpu className="h-4.5 w-4.5" />
+          <Cpu className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-[10px] uppercase tracking-[0.14em] text-ink-subtle">Operating model</div>
