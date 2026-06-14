@@ -85,7 +85,7 @@ export async function extractOrderFromTranscript(transcript: string): Promise<Ex
     parsed.totalEstimate = parsed.totalEstimate ?? items.reduce((sum, i) => sum + i.quantity * (i.estimatedPrice ?? 0), 0);
     return parsed;
   } catch (e) {
-    console.error("[order-extractor] failed", e);
+    console.warn("[order-extractor] AI parse fallback", e);
     return extractCatalogOrder(transcript);
   }
 }
