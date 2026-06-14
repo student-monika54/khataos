@@ -37,7 +37,7 @@ const NUM_WORDS: Record<string, number> = {
   ek: 1, do: 2, teen: 3, char: 4, chaar: 4, paanch: 5, panch: 5, ondu: 1, eradu: 2, mooru: 3,
 };
 
-function extractCatalogOrder(transcript: string): ExtractedOrder | null {
+export function extractCatalogOrder(transcript: string): ExtractedOrder | null {
   const text = transcript.toLowerCase();
   const parts = text.split(/,|\band\b|\baur\b|\bmatthu\b/i);
   const items = [] as ExtractedOrder["items"];

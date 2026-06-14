@@ -34,14 +34,14 @@ function legacyMenuXml(base: string, cid: string): string {
 }
 
 function sarvamGreetingXml(base: string, cid: string): string {
-  // One short prompt, then start recording. Sarvam STT detects the
-  // language from the caller's first words — no need to stack greetings.
+  // Short bilingual prompt — Sarvam auto-detects the caller's language from
+  // their first words, so we don't stack 3+ greetings.
   return `
-    <Say voice="Polly.Raveena" language="en-IN">Welcome to KhataOS. Please tell me what you'd like to order after the beep.</Say>
+    <Say voice="Polly.Aditi" language="hi-IN">नमस्ते, KhataOS में स्वागत है। बीप के बाद अपना ऑर्डर बोलें।</Say>
     <Record action="${base}/api/public/twilio/record?cid=${encodeURIComponent(cid)}"
             method="POST"
-            maxLength="20"
-            timeout="3"
+            maxLength="15"
+            timeout="2"
             playBeep="true"
             trim="trim-silence"
             finishOnKey="#" />
