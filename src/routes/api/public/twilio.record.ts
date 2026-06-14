@@ -1,29 +1,31 @@
-// Sarvam-powered voice loop.
+// Sarvam + Gemini voice-ordering loop.
 //
-// Flow per turn:
-//   Twilio <Record> finishes ─▶ POST /api/public/twilio/record
-//     1. Fetch the recording audio from Twilio (basic auth via env or
-//        the Lovable Twilio connector gateway).
-//     2. Sarvam saaras:v3 STT-translate ─▶ English transcript + detected
-//        source language (en-IN | hi-IN | kn-IN | ta-IN | te-IN).
-//     3. Existing Commerce Brain + Financial Brain (orchestrator.processTurn)
-//        produces the reply text. UI / order pipeline unchanged.
-//     4. Sarvam TTS synthesises the reply in the customer's language.
-//     5. Return TwiML: <Play>{cached-tts-url}</Play><Record .../> to
-//        continue the conversation. <Hangup/> on END_CALL.
+// Per turn:
+//   Twilio <Record> finishes → POST /api/public/twilio/record
+//     1. Fetch the recording from Twilio.
+//     2. Sarvam STT-translate → English transcript + detected language.
+//     3. If transcript matches end-of-order phrases (no/done/bas/saaku/…):
+//          finalize the accumulated cart → insert one row into `orders`
+//          (pending_credit_review), TTS "Order confirmed for X. Goodbye." → <Hangup/>.
+//        Else if cart empty: "Okay, no order placed. Goodbye." → <Hangup/>.
+//     4. Else: Gemini Flash extracts items → append to per-call cart in
+//        call-store, TTS "Added X, Y. Anything else?" → <Record>.
+//     5. If no items detected: TTS "I didn't catch any items…" → <Record>.
 //
-// Observability: every stage logs latency + decision under "[Sarvam pipeline]".
+// The legacy orchestrator/templates path is intentionally NOT used here —
+// it was producing the "I can help with balances, credit requests…" loop.
 
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  appendTurnServer, getCall, patchCall, putCall,
+  appendTurnServer, getCall, patchCall, putCall, setCart, getCart,
 } from "@/lib/khataos/call-store.server";
 import {
   isSarvamEnabled, sarvamTranslateSpeech, sarvamTranslateSpeechStreaming, sarvamTextToSpeech,
   type SarvamLangCode,
 } from "@/lib/khataos/sarvam.server";
-import { processTurn } from "@/lib/khataos/orchestrator.server";
 import { extractOrderFromTranscript } from "@/lib/khataos/order-extractor.server";
+import { runFinancialBrain } from "@/lib/khataos/financial-brain.server";
+import type { CartLine } from "@/lib/khataos/calls";
 
 async function uploadTtsAndSign(cid: string, audio: Uint8Array): Promise<string> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -48,14 +50,10 @@ function escapeXml(s: string) {
   return s.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" }[c]!));
 }
 
-function langToTemplate(code: SarvamLangCode): "en" | "hi" | "kn" | "ta" | "te" {
-  return code === "hi-IN" ? "hi" : code === "kn-IN" ? "kn" : code === "ta-IN" ? "ta" : code === "te-IN" ? "te" : "en";
-}
 function langToLabel(code: SarvamLangCode): "English" | "Hindi" | "Kannada" | "Tamil" | "Telugu" {
   return code === "hi-IN" ? "Hindi" : code === "kn-IN" ? "Kannada" : code === "ta-IN" ? "Tamil" : code === "te-IN" ? "Telugu" : "English";
 }
 function langToTwilioVoice(code: SarvamLangCode): { voice: string; locale: string } {
-  // Fallback only when Sarvam TTS itself fails.
   if (code === "hi-IN") return { voice: "Polly.Aditi", locale: "hi-IN" };
   if (code === "kn-IN") return { voice: "Google.kn-IN-Standard-A", locale: "kn-IN" };
   if (code === "ta-IN") return { voice: "Google.ta-IN-Standard-A", locale: "ta-IN" };
@@ -68,9 +66,19 @@ function isAuthError(err: unknown): boolean {
   return /invalid_api_key|missing authentication|403|SARVAM_API_KEY/i.test(msg);
 }
 
-// Fetch the Twilio recording bytes. Tries direct basic-auth first
-// (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN), falls back to the Lovable
-// Twilio connector gateway.
+// Multilingual end-of-order phrases. Sarvam translates to English so most
+// matches happen against English, but we keep transliterated variants too
+// because Sarvam sometimes returns native words verbatim.
+const END_INTENT_RE =
+  /(?:^|\b)(that'?s? all|that is all|nothing else|no more|no thanks|i'?m done|i am done|done|finish|finished|stop|end call|hang up|that's it|thats it|cut the call|no|nope|bas|bus|kuch nahi|aur kuch nahi|aur kuchh nahi|nahi chahiye|ho gaya|saaku|saakaagide|mugiyitu|mugisi|po(?:d|du)?u|podhum|chaalu|chalu|enough|thank you|thanks)(?:$|\b)/i;
+
+function looksLikeEndOfOrder(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  if (!t) return false;
+  // Very short utterances + end phrase = high confidence "done".
+  return END_INTENT_RE.test(t);
+}
+
 async function fetchTwilioRecording(recordingUrl: string): Promise<{ bytes: Uint8Array; contentType: string; filename: string }> {
   const clean = recordingUrl.replace(/\.(mp3|wav)$/i, "");
   const wavUrl = `${clean}.wav`;
@@ -97,7 +105,6 @@ async function fetchTwilioRecording(recordingUrl: string): Promise<{ bytes: Uint
   const lovKey = process.env.LOVABLE_API_KEY;
   const twKey = process.env.TWILIO_API_KEY;
   if (lovKey && twKey) {
-    // RecordingUrl looks like: https://api.twilio.com/2010-04-01/Accounts/AC.../Recordings/RE...
     const m = recordingUrl.match(/Recordings\/(RE[a-zA-Z0-9]+)/);
     if (m) {
       for (const ext of ["wav", "mp3"] as const) {
@@ -136,12 +143,26 @@ function fallbackSayTwiml(text: string, code: SarvamLangCode): string {
   return `<Say voice="${v.voice}" language="${v.locale}">${escapeXml(text)}</Say>`;
 }
 
+async function speakTwiml(cid: string, text: string, code: SarvamLangCode): Promise<string> {
+  try {
+    const tts = await sarvamTextToSpeech(text, code);
+    const signedUrl = await uploadTtsAndSign(cid, tts.audio);
+    return `<Play>${escapeXml(signedUrl)}</Play>`;
+  } catch (err) {
+    console.error("[Sarvam pipeline] TTS error, falling back to <Say>", err);
+    return fallbackSayTwiml(text, code);
+  }
+}
+
+function summarizeCart(cart: CartLine[]): string {
+  return cart.map((l) => `${l.qty} ${l.unit} ${l.name}`).join(", ");
+}
+
 export const Route = createFileRoute("/api/public/twilio/record")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         if (!isSarvamEnabled()) {
-          // Sarvam not configured — fall back to the legacy DTMF menu.
           const url = new URL(request.url);
           return twiml(`<Redirect method="POST">${url.origin}/api/public/twilio/voice?legacy=1</Redirect>`);
         }
@@ -160,11 +181,11 @@ export const Route = createFileRoute("/api/public/twilio/record")({
             id: cid, customerId: "c_me", customerName: "Ramesh Kumar",
             phone: from || "+91-unknown", state: "listening",
             startedAt: Date.now(), transcript: [], source: "twilio",
+            cart: [], menuState: "menu",
           });
           call = getCall(cid)!;
         }
 
-        // No speech captured (silence) — re-prompt once.
         if (!recordingUrl || recordingDuration < 1) {
           return twiml(`
             ${fallbackSayTwiml("I didn't catch that. Please speak after the tone.", "en-IN")}
@@ -192,14 +213,14 @@ export const Route = createFileRoute("/api/public/twilio/record")({
             patchCall(cid, { state: "failed", summary: "Sarvam API key rejected authentication." });
           }
           return twiml(`
-            ${fallbackSayTwiml(isAuthError(err) ? "KhataOS speech needs a valid Sarvam key from the Sarvam dashboard." : "Sorry, I could not hear that clearly. Please say the items again.", "en-IN")}
+            ${fallbackSayTwiml(isAuthError(err) ? "KhataOS speech needs a valid Sarvam key." : "Sorry, I couldn't hear that. Please say the items again.", "en-IN")}
             ${recordTwiml(base, cid)}
           `);
         }
 
         if (!transcript) {
           return twiml(`
-            ${fallbackSayTwiml("I didn't catch that. Please repeat.", detectedLang)}
+            ${fallbackSayTwiml("I didn't catch that. Please repeat your order.", detectedLang)}
             ${recordTwiml(base, cid)}
           `);
         }
@@ -211,36 +232,42 @@ export const Route = createFileRoute("/api/public/twilio/record")({
           deepgramDetectedLanguage: detectedLang, deepgramLatencyMs: sttLatency,
         });
 
-        // ===== Brain (UNCHANGED) =====
-        const ctxOut = await processTurn(transcript, {
-          customerId: call.customerId,
-          customerName: call.customerName || "Customer",
-          trustScore: 82,
-          outstanding: 1850,
-          creditLimit: 5000,
-          reliability: 91,
-          forcedLanguage: langToLabel(detectedLang),
-          forcedTemplateLang: langToTemplate(detectedLang),
-        });
+        const cart = (getCart(cid) ?? []).slice();
+        const isEnd = looksLikeEndOfOrder(transcript);
 
-        // Persist agent + customer enriched turns.
-        for (const t of ctxOut.turns) appendTurnServer(cid, t);
-        patchCall(cid, { language: ctxOut.commerce.language, currentIntent: ctxOut.commerce.intent, currentAgent: ctxOut.financial.agent });
+        // ===== END OF ORDER → finalize and hang up =====
+        if (isEnd) {
+          if (cart.length === 0) {
+            const goodbye = "Okay, no order placed. Thank you. Goodbye.";
+            const play = await speakTwiml(cid, goodbye, detectedLang);
+            appendTurnServer(cid, { role: "agent", at: Date.now(), text: goodbye, templateId: "END_CALL_EMPTY", language: langToLabel(detectedLang) });
+            patchCall(cid, { state: "completed", endedAt: Date.now(), durationSec: Math.round((Date.now() - call.startedAt) / 1000), outcome: "info", summary: goodbye });
+            return twiml(`${play}<Hangup/>`);
+          }
 
-        // KHATA_ORDER → extract structured JSON via Gemini Flash and queue
-        // in the customer's Orders tab as pending_approval. The order only
-        // reaches the shopkeeper after the customer taps Approve.
-        if (ctxOut.commerce.intent === "KHATA_ORDER" && ctxOut.commerce.items.length > 0) {
+          const total = cart.reduce((s, l) => s + l.qty * l.price, 0);
+          const summary = summarizeCart(cart);
+
+          // Financial brain (advisory) for retailer.
+          let trustScore: number | null = 82;
+          let creditRecommendation: string | null = null;
+          let decisionReason: string | null = null;
           try {
-            const extracted = await extractOrderFromTranscript(transcript);
-            const items = extracted && extracted.items.length > 0
-              ? extracted.items
-              : ctxOut.commerce.items.map((i) => ({
-                  name: i.name,
-                  quantity: parseFloat(i.quantity) || 1,
-                  unit: i.quantity.replace(/[\d.\s]/g, "") || "pcs",
-                }));
-            const amount = extracted?.totalEstimate ?? ctxOut.amount ?? 0;
+            const brain = await runFinancialBrain({
+              intent: "KHATA_ORDER",
+              customerName: call.customerName || "Customer",
+              trustScore: 82, outstanding: 1850, creditLimit: 5000, reliability: 91,
+              requestedAmount: total,
+            });
+            creditRecommendation = brain.decision === "approve" ? "approve"
+              : brain.decision === "reject" ? "reject" : "review";
+            decisionReason = brain.reasoning;
+          } catch (e) {
+            console.error("[twilio.record] financial brain failed", e);
+          }
+
+          // Insert one consolidated order row.
+          try {
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
             const { error: insErr } = await supabaseAdmin.from("orders").insert({
               source: "voice_call",
@@ -249,41 +276,71 @@ export const Route = createFileRoute("/api/public/twilio/record")({
               customer_name: call.customerName,
               phone: call.phone,
               retailer_id: "shop_default",
-              items,
-              amount,
-              language: ctxOut.commerce.language,
+              items: cart.map((l) => ({ name: l.name, quantity: l.qty, unit: l.unit, estimatedPrice: l.price })),
+              amount: total,
+              language: langToLabel(detectedLang),
               transcript,
               status: "pending_credit_review",
-              reasoning: extracted?.summary ?? ctxOut.financial.reasoning,
+              reasoning: summary,
+              trust_score: trustScore,
+              credit_recommendation: creditRecommendation,
+              decision_reason: decisionReason,
             });
             if (insErr) console.error("[twilio.record] orders insert", insErr);
           } catch (e) {
-            console.error("[twilio.record] extraction/insert failed", e);
+            console.error("[twilio.record] orders insert threw", e);
           }
+
+          setCart(cid, []);
+          const confirm = `Your order for ${summary} has been confirmed and sent for approval. Thank you. Goodbye.`;
+          const play = await speakTwiml(cid, confirm, detectedLang);
+          appendTurnServer(cid, { role: "agent", at: Date.now(), text: confirm, templateId: "ORDER_CONFIRMED", language: langToLabel(detectedLang) });
+          patchCall(cid, { state: "completed", endedAt: Date.now(), durationSec: Math.round((Date.now() - call.startedAt) / 1000), outcome: "credit_approved", summary: confirm });
+          return twiml(`${play}<Hangup/>`);
         }
 
-        // ===== TTS =====
-        let playFragment = "";
-        try {
-          const tts = await sarvamTextToSpeech(ctxOut.reply, detectedLang);
-          const signedUrl = await uploadTtsAndSign(cid, tts.audio);
-          playFragment = `<Play>${escapeXml(signedUrl)}</Play>`;
-          console.log("[Sarvam pipeline]", JSON.stringify({
-            cid, language: detectedLang, transcript, sttTransport, intent: ctxOut.commerce.intent,
-            items: ctxOut.commerce.items, decision: ctxOut.financial.decision,
-            sttLatency, ttsLatency: tts.latencyMs,
-          }));
-        } catch (err) {
-          console.error("[Sarvam pipeline] TTS error, falling back to <Say>", err);
-          playFragment = fallbackSayTwiml(ctxOut.reply, detectedLang);
+        // ===== NEW ITEMS — Gemini extractor =====
+        const extracted = await extractOrderFromTranscript(transcript);
+        const newItems = (extracted?.items ?? []).filter((i) => i.name);
+
+        if (newItems.length === 0) {
+          const prompt = cart.length > 0
+            ? "I didn't catch any items. Anything else to add, or say 'done' to confirm."
+            : "I didn't catch any items. Please tell me what you'd like to order.";
+          const play = await speakTwiml(cid, prompt, detectedLang);
+          appendTurnServer(cid, { role: "agent", at: Date.now(), text: prompt, templateId: "REPROMPT", language: langToLabel(detectedLang), pipelineStage: "gemini-extractor" });
+          return twiml(`${play}${recordTwiml(base, cid)}`);
         }
 
-        if (ctxOut.endCall) {
-          patchCall(cid, { state: "completed", endedAt: Date.now(), durationSec: Math.round((Date.now() - call.startedAt) / 1000), outcome: "info" });
-          return twiml(`${playFragment}<Hangup/>`);
+        // Append to per-call cart.
+        for (const it of newItems) {
+          const name = it.name.trim();
+          const qty = Number(it.quantity) || 1;
+          const unit = (it.unit ?? "pcs").trim() || "pcs";
+          const price = Number(it.estimatedPrice) || 0;
+          const skuId = name.toLowerCase().replace(/\s+/g, "_");
+          const idx = cart.findIndex((l) => l.skuId === skuId);
+          if (idx >= 0) cart[idx] = { ...cart[idx], qty: cart[idx].qty + qty };
+          else cart.push({ skuId, name, qty, unit, price });
         }
+        setCart(cid, cart);
 
-        return twiml(`${playFragment}${recordTwiml(base, cid)}`);
+        const addedText = newItems.map((it) => `${it.quantity} ${it.unit ?? "pcs"} ${it.name}`).join(", ");
+        const reply = `Added ${addedText}. Anything else?`;
+        const play = await speakTwiml(cid, reply, detectedLang);
+
+        appendTurnServer(cid, {
+          role: "agent", at: Date.now(), text: reply,
+          templateId: "ITEMS_ADDED", language: langToLabel(detectedLang),
+          pipelineStage: "gemini-extractor",
+        });
+
+        console.log("[Sarvam pipeline]", JSON.stringify({
+          cid, language: detectedLang, transcript, sttTransport,
+          newItems, cartSize: cart.length, sttLatency,
+        }));
+
+        return twiml(`${play}${recordTwiml(base, cid)}`);
       },
     },
   },
