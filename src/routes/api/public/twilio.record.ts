@@ -257,9 +257,8 @@ export const Route = createFileRoute("/api/public/twilio/record")({
         let playFragment = "";
         try {
           const tts = await sarvamTextToSpeech(ctxOut.reply, detectedLang);
-          const ttsId = `${cid}_${Date.now()}`;
-          putTts(ttsId, tts.audio, tts.contentType);
-          playFragment = `<Play>${base}/api/public/twilio/tts/${encodeURIComponent(ttsId)}</Play>`;
+          const signedUrl = await uploadTtsAndSign(cid, tts.audio);
+          playFragment = `<Play>${escapeXml(signedUrl)}</Play>`;
           console.log("[Sarvam pipeline]", JSON.stringify({
             cid, language: detectedLang, transcript, sttTransport, intent: ctxOut.commerce.intent,
             items: ctxOut.commerce.items, decision: ctxOut.financial.decision,
