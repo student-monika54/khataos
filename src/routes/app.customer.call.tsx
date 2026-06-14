@@ -43,6 +43,76 @@ function CallScreen() {
   const [decision, setDecision] = useState<{ decision: string; reasoning: string; recommendedAmount?: number; amount?: number } | null>(null);
   const startedAt = useRef<number>(Date.now());
 
+  // Hands-free voice ordering inside the call screen.
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const recRef = useRef<any>(null);
+  const transcriptRef = useRef("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    const r = new SR();
+    r.continuous = false;
+    r.interimResults = false;
+    r.lang = LANG_LABEL[lang].code;
+    r.onresult = (e: any) => { transcriptRef.current = e.results[0][0].transcript; };
+    r.onerror = () => setVoiceListening(false);
+    r.onend = () => {
+      setVoiceListening(false);
+      const t = transcriptRef.current.trim();
+      transcriptRef.current = "";
+      if (t) submitVoiceOrder(t);
+    };
+    recRef.current = r;
+  }, [lang]);
+
+  async function submitVoiceOrder(text: string) {
+    setVoiceBusy(true);
+    say(text);
+    try {
+      const res = await fetch("/api/khataos/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "in_app_call",
+          customerId: me.id,
+          customerName: me.name,
+          phone: me.phone,
+          callId,
+          transcript: text,
+          language: LANG_LABEL[lang].en,
+        }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        const lines = Array.isArray(created?.items)
+          ? created.items.map((it: any) => `${it.quantity} ${it.unit ?? "pcs"} ${it.name}`).join(", ")
+          : "";
+        say(lines ? `Got it — ${lines}. Sent to your shopkeeper for approval.` : "Order sent. Track it in My Orders.");
+      } else if (res.status === 422) {
+        say("I didn't catch any items. Please say what you need, like '2 kg rice and 1 litre oil'.");
+      } else {
+        say("Couldn't save your order. Please try again.");
+      }
+    } catch {
+      say("Network error. Please try again.");
+    } finally {
+      setVoiceBusy(false);
+    }
+  }
+
+  function toggleVoice() {
+    if (!recRef.current || voiceBusy) return;
+    if (voiceListening) { try { recRef.current.stop(); } catch {} return; }
+    transcriptRef.current = "";
+    recRef.current.lang = LANG_LABEL[lang].code;
+    setVoiceListening(true);
+    try { recRef.current.start(); } catch { setVoiceListening(false); }
+  }
+
+
   const m = useMemo(() => voiceMenu(lang), [lang]);
   const total = cart.reduce((s, l) => s + l.qty * l.price, 0);
   const langCode = LANG_LABEL[lang].code;
