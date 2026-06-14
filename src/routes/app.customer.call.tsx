@@ -137,6 +137,14 @@ function CallScreen() {
       }),
     }).catch(() => {});
 
+    // Deduct from local available credit + log in credit history.
+    recordCreditPurchase(
+      me.id,
+      total,
+      cart.map((l) => ({ name: l.name, qty: l.qty, price: l.price })),
+      cart.map((l) => `${l.qty} ${l.unit} ${l.name}`).join(", "),
+    );
+
     setTimeout(() => { say(reply); setBusy(false); setCart([]); }, 250);
   }
 
