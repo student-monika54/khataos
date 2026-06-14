@@ -43,7 +43,6 @@ import { Route as ApiKhataosVoiceOrdersDecisionRouteImport } from './routes/api/
 import { Route as ApiKhataosOutboundCancelRouteImport } from './routes/api/khataos.outbound.cancel'
 import { Route as ApiKhataosOrdersStatusRouteImport } from './routes/api/khataos.orders.status'
 import { Route as ApiKhataosOrdersLiveRouteImport } from './routes/api/khataos.orders.live'
-import { Route as ApiKhataosOrdersDecisionRouteImport } from './routes/api/khataos.orders.decision'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -219,12 +218,6 @@ const ApiKhataosOrdersLiveRoute = ApiKhataosOrdersLiveRouteImport.update({
   path: '/live',
   getParentRoute: () => ApiKhataosOrdersRoute,
 } as any)
-const ApiKhataosOrdersDecisionRoute =
-  ApiKhataosOrdersDecisionRouteImport.update({
-    id: '/decision',
-    path: '/decision',
-    getParentRoute: () => ApiKhataosOrdersRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -252,7 +245,6 @@ export interface FileRoutesByFullPath {
   '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer/': typeof AppCustomerIndexRoute
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
-  '/api/khataos/orders/decision': typeof ApiKhataosOrdersDecisionRoute
   '/api/khataos/orders/live': typeof ApiKhataosOrdersLiveRoute
   '/api/khataos/orders/status': typeof ApiKhataosOrdersStatusRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
@@ -288,7 +280,6 @@ export interface FileRoutesByTo {
   '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer': typeof AppCustomerIndexRoute
   '/app/shopkeeper': typeof AppShopkeeperIndexRoute
-  '/api/khataos/orders/decision': typeof ApiKhataosOrdersDecisionRoute
   '/api/khataos/orders/live': typeof ApiKhataosOrdersLiveRoute
   '/api/khataos/orders/status': typeof ApiKhataosOrdersStatusRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
@@ -326,7 +317,6 @@ export interface FileRoutesById {
   '/app/shopkeeper/settings': typeof AppShopkeeperSettingsRoute
   '/app/customer/': typeof AppCustomerIndexRoute
   '/app/shopkeeper/': typeof AppShopkeeperIndexRoute
-  '/api/khataos/orders/decision': typeof ApiKhataosOrdersDecisionRoute
   '/api/khataos/orders/live': typeof ApiKhataosOrdersLiveRoute
   '/api/khataos/orders/status': typeof ApiKhataosOrdersStatusRoute
   '/api/khataos/outbound/cancel': typeof ApiKhataosOutboundCancelRoute
@@ -365,7 +355,6 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/settings'
     | '/app/customer/'
     | '/app/shopkeeper/'
-    | '/api/khataos/orders/decision'
     | '/api/khataos/orders/live'
     | '/api/khataos/orders/status'
     | '/api/khataos/outbound/cancel'
@@ -401,7 +390,6 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/settings'
     | '/app/customer'
     | '/app/shopkeeper'
-    | '/api/khataos/orders/decision'
     | '/api/khataos/orders/live'
     | '/api/khataos/orders/status'
     | '/api/khataos/outbound/cancel'
@@ -438,7 +426,6 @@ export interface FileRouteTypes {
     | '/app/shopkeeper/settings'
     | '/app/customer/'
     | '/app/shopkeeper/'
-    | '/api/khataos/orders/decision'
     | '/api/khataos/orders/live'
     | '/api/khataos/orders/status'
     | '/api/khataos/outbound/cancel'
@@ -701,13 +688,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiKhataosOrdersLiveRouteImport
       parentRoute: typeof ApiKhataosOrdersRoute
     }
-    '/api/khataos/orders/decision': {
-      id: '/api/khataos/orders/decision'
-      path: '/decision'
-      fullPath: '/api/khataos/orders/decision'
-      preLoaderRoute: typeof ApiKhataosOrdersDecisionRouteImport
-      parentRoute: typeof ApiKhataosOrdersRoute
-    }
   }
 }
 
@@ -754,13 +734,11 @@ const AppRouteChildren: AppRouteChildren = {
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface ApiKhataosOrdersRouteChildren {
-  ApiKhataosOrdersDecisionRoute: typeof ApiKhataosOrdersDecisionRoute
   ApiKhataosOrdersLiveRoute: typeof ApiKhataosOrdersLiveRoute
   ApiKhataosOrdersStatusRoute: typeof ApiKhataosOrdersStatusRoute
 }
 
 const ApiKhataosOrdersRouteChildren: ApiKhataosOrdersRouteChildren = {
-  ApiKhataosOrdersDecisionRoute: ApiKhataosOrdersDecisionRoute,
   ApiKhataosOrdersLiveRoute: ApiKhataosOrdersLiveRoute,
   ApiKhataosOrdersStatusRoute: ApiKhataosOrdersStatusRoute,
 }
