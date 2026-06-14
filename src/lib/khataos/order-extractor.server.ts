@@ -68,21 +68,32 @@ export async function extractOrderFromTranscript(transcript: string): Promise<Ex
       system:
         "You are a kirana store order parser. Given an English transcript of a customer's voice order, extract every distinct grocery item with a numeric quantity and a unit (kg, g, L, ml, packet, pcs, dozen, etc.). " +
         "Each item object must use the key name for the product name. If you accidentally think of the key as item, still output name. " +
-        "Use typical Indian kirana prices (rice ~60/kg, sugar ~45/kg, oil ~150/L, atta ~50/kg, milk ~60/L, dal ~120/kg, biscuits ~20/packet, soap ~30/pc) for estimatedPrice; totalEstimate is the sum. " +
+        "Use typical Indian kirana prices for estimatedPrice (INR per unit): rice 60/kg, sugar 45/kg, jaggery 80/kg, oil 140/L, ghee 600/kg, butter 60/pcs, paneer 350/kg, curd 80/kg, atta 50/kg, maida 55/kg, milk 60/L, dal 140/kg, biscuits 30/pack, soap 30/pc, shampoo 90/pc, toothpaste 75/pc, detergent 120/pack, salt 25/kg, onion 40/kg, potato 35/kg, tomato 40/kg, chilli 80/kg, garlic 200/kg, ginger 120/kg, turmeric 250/kg, masala 60/pack, noodles 15/pack, eggs 8/pc, tea 120/pack, coffee 180/pack, bread 45/pcs. ALWAYS include an estimatedPrice — never leave it null. totalEstimate is the sum of quantity*estimatedPrice. " +
         "summary is a one-line natural recap like '2 kg rice, 1 L oil — ₹270 est'. If no clear items, return items: [].",
       prompt: `Transcript: """${transcript}"""`,
     });
     if (!experimental_output) return null;
     const items = experimental_output.items
-      .map((i) => ({
-        name: (i.name ?? i.item ?? "").trim(),
-        quantity: i.quantity,
-        unit: i.unit,
-        estimatedPrice: i.estimatedPrice ?? i.estimatedUnitPrice,
-      }))
+      .map((i) => {
+        const name = (i.name ?? i.item ?? "").trim();
+        let estimatedPrice = i.estimatedPrice ?? i.estimatedUnitPrice;
+        let unit = i.unit;
+        if (!estimatedPrice || estimatedPrice <= 0) {
+          const sku = CATALOG.find((s) =>
+            s.aliases.some((a) => name.toLowerCase().includes(a)) ||
+            s.name.toLowerCase() === name.toLowerCase()
+          );
+          if (sku) {
+            estimatedPrice = sku.pricePerUnit;
+            unit = unit ?? sku.unit;
+          }
+        }
+        return { name, quantity: i.quantity, unit: unit ?? "pcs", estimatedPrice };
+      })
       .filter((i) => i.name.length > 0);
     const parsed = OrderSchema.parse({ ...experimental_output, items });
-    parsed.totalEstimate = parsed.totalEstimate ?? items.reduce((sum, i) => sum + i.quantity * (i.estimatedPrice ?? 0), 0);
+    const computedTotal = items.reduce((sum, i) => sum + i.quantity * (i.estimatedPrice ?? 0), 0);
+    parsed.totalEstimate = computedTotal > 0 ? computedTotal : (parsed.totalEstimate ?? 0);
     return parsed;
   } catch (e) {
     console.warn("[order-extractor] AI parse fallback", e);
