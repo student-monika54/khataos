@@ -5,11 +5,60 @@
 
 export type Sku = {
   id: string;
-  name: string;          // canonical display name
+  name: string;          // canonical display name (English)
   unit: "kg" | "litre" | "pcs" | "pack";
   pricePerUnit: number;  // INR
   defaultQty: number;    // when user says "add X" with no quantity
-  aliases: string[];     // lowercased, ASCII
+  aliases: string[];     // lowercased, ASCII + native script tokens
+};
+
+export type LangKey = "en" | "hi" | "kn";
+
+// Localized display names per SKU id. Used so order items render in the
+// customer's spoken language on the orders screen.
+export const SKU_NAMES_BY_LANG: Record<string, { en: string; hi: string; kn: string }> = {
+  atta:       { en: "Atta",       hi: "आटा",         kn: "ಗೋಧಿ ಹಿಟ್ಟು" },
+  maida:      { en: "Maida",      hi: "मैदा",        kn: "ಮೈದಾ" },
+  rice:       { en: "Rice",       hi: "चावल",        kn: "ಅಕ್ಕಿ" },
+  oil:        { en: "Oil",        hi: "तेल",         kn: "ಎಣ್ಣೆ" },
+  ghee:       { en: "Ghee",       hi: "घी",          kn: "ತುಪ್ಪ" },
+  butter:     { en: "Butter",     hi: "मक्खन",       kn: "ಬೆಣ್ಣೆ" },
+  paneer:     { en: "Paneer",     hi: "पनीर",        kn: "ಪನೀರ್" },
+  curd:       { en: "Curd",       hi: "दही",         kn: "ಮೊಸರು" },
+  sugar:      { en: "Sugar",      hi: "चीनी",        kn: "ಸಕ್ಕರೆ" },
+  jaggery:    { en: "Jaggery",    hi: "गुड़",         kn: "ಬೆಲ್ಲ" },
+  milk:       { en: "Milk",       hi: "दूध",         kn: "ಹಾಲು" },
+  bread:      { en: "Bread",      hi: "ब्रेड",        kn: "ಬ್ರೆಡ್" },
+  tea:        { en: "Tea",        hi: "चाय",         kn: "ಚಹಾ" },
+  coffee:     { en: "Coffee",     hi: "कॉफ़ी",        kn: "ಕಾಫಿ" },
+  soap:       { en: "Soap",       hi: "साबुन",       kn: "ಸಾಬೂನು" },
+  shampoo:    { en: "Shampoo",    hi: "शैम्पू",       kn: "ಶಾಂಪೂ" },
+  toothpaste: { en: "Toothpaste", hi: "टूथपेस्ट",     kn: "ಟೂತ್‌ಪೇಸ್ಟ್" },
+  detergent:  { en: "Detergent",  hi: "डिटर्जेंट",    kn: "ಡಿಟರ್ಜೆಂಟ್" },
+  salt:       { en: "Salt",       hi: "नमक",         kn: "ಉಪ್ಪು" },
+  biscuits:   { en: "Biscuits",   hi: "बिस्किट",      kn: "ಬಿಸ್ಕೆಟ್" },
+  eggs:       { en: "Eggs",       hi: "अंडे",         kn: "ಮೊಟ್ಟೆ" },
+  dal:        { en: "Dal",        hi: "दाल",         kn: "ಬೇಳೆ" },
+  onion:      { en: "Onion",      hi: "प्याज़",        kn: "ಈರುಳ್ಳಿ" },
+  potato:     { en: "Potato",     hi: "आलू",         kn: "ಆಲೂಗಡ್ಡೆ" },
+  tomato:     { en: "Tomato",     hi: "टमाटर",       kn: "ಟೊಮ್ಯಾಟೊ" },
+  chilli:     { en: "Chilli",     hi: "मिर्च",        kn: "ಮೆಣಸಿನಕಾಯಿ" },
+  garlic:     { en: "Garlic",     hi: "लहसुन",       kn: "ಬೆಳ್ಳುಳ್ಳಿ" },
+  ginger:     { en: "Ginger",     hi: "अदरक",       kn: "ಶುಂಠಿ" },
+  turmeric:   { en: "Turmeric",   hi: "हल्दी",        kn: "ಅರಿಶಿನ" },
+  masala:     { en: "Masala",     hi: "मसाला",       kn: "ಮಸಾಲೆ" },
+  noodles:    { en: "Noodles",    hi: "नूडल्स",       kn: "ನೂಡಲ್ಸ್" },
+};
+
+export function localizedName(skuId: string, lang: LangKey, fallback: string): string {
+  return SKU_NAMES_BY_LANG[skuId]?.[lang] ?? fallback;
+}
+
+// Localized unit labels.
+export const UNIT_LABELS: Record<LangKey, Record<string, string>> = {
+  en: { kg: "kg", litre: "litre", pcs: "pcs", pack: "pack", g: "g", ml: "ml", dozen: "dozen", L: "L" },
+  hi: { kg: "किलो", litre: "लीटर", pcs: "नग", pack: "पैकेट", g: "ग्राम", ml: "मि.ली.", dozen: "दर्जन", L: "लीटर" },
+  kn: { kg: "ಕೆ.ಜಿ.", litre: "ಲೀಟರ್", pcs: "ತುಂಡು", pack: "ಪ್ಯಾಕ್", g: "ಗ್ರಾಂ", ml: "ಮಿ.ಲೀ.", dozen: "ಡಜನ್", L: "ಲೀಟರ್" },
 };
 
 export const CATALOG: Sku[] = [
@@ -48,7 +97,15 @@ export const CATALOG: Sku[] = [
 
 export const findSku = (token: string): Sku | undefined => {
   const t = token.toLowerCase().trim();
-  return CATALOG.find((s) => s.aliases.some((a) => t === a || t.includes(a) || a.includes(t)));
+  const byAlias = CATALOG.find((s) => s.aliases.some((a) => t === a || t.includes(a) || a.includes(t)));
+  if (byAlias) return byAlias;
+  // Try native-script localized names so Hindi/Kannada inputs also resolve.
+  for (const [id, names] of Object.entries(SKU_NAMES_BY_LANG)) {
+    if (token.includes(names.hi) || token.includes(names.kn) || token.toLowerCase().includes(names.en.toLowerCase())) {
+      return CATALOG.find((s) => s.id === id);
+    }
+  }
+  return undefined;
 };
 
 export const skuById = (id: string) => CATALOG.find((s) => s.id === id);
