@@ -153,6 +153,8 @@ function CallScreen() {
     setLastReply(prompt);
     // Quick Voice feel: auto-start mic right after greeting.
     setTimeout(() => startListening(), 600);
+  }
+
 
   function backToMenu() {
     setDecision(null);
