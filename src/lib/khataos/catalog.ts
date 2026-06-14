@@ -97,7 +97,15 @@ export const CATALOG: Sku[] = [
 
 export const findSku = (token: string): Sku | undefined => {
   const t = token.toLowerCase().trim();
-  return CATALOG.find((s) => s.aliases.some((a) => t === a || t.includes(a) || a.includes(t)));
+  const byAlias = CATALOG.find((s) => s.aliases.some((a) => t === a || t.includes(a) || a.includes(t)));
+  if (byAlias) return byAlias;
+  // Try native-script localized names so Hindi/Kannada inputs also resolve.
+  for (const [id, names] of Object.entries(SKU_NAMES_BY_LANG)) {
+    if (token.includes(names.hi) || token.includes(names.kn) || token.toLowerCase().includes(names.en.toLowerCase())) {
+      return CATALOG.find((s) => s.id === id);
+    }
+  }
+  return undefined;
 };
 
 export const skuById = (id: string) => CATALOG.find((s) => s.id === id);
