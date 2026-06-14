@@ -103,6 +103,14 @@ export const Route = createFileRoute("/api/khataos/orders")({
           amount = items.reduce((s, it) => s + (it.estimatedPrice ?? 0) * (it.quantity ?? 1), 0);
         }
 
+        // Localize item names + units to the customer's spoken language so
+        // the orders tab paints in that language.
+        const lang = langKeyOf(body.language);
+        items = items.map((it) => localizeItem(it, lang));
+        // Rebuild a localized summary line.
+        const totalForSummary = amount ?? 0;
+        reasoning = `${items.map((i) => `${i.quantity} ${i.unit ?? ""} ${i.name}`.trim()).join(", ")} — ₹${Math.round(totalForSummary)}`;
+
         // Financial brain — advisory recommendation for the retailer.
         const prof = CUSTOMER_PROFILES[body.customerId] ?? { trustScore: 70, outstanding: 0, creditLimit: 3000, reliability: 75 };
         let trustScore: number | null = prof.trustScore;
