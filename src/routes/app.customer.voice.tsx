@@ -87,6 +87,26 @@ function VoiceAgent() {
         recordRepayment(me.id, Math.min(me.outstanding, parseInt(repay[1])));
       }
       speak(reply, detected);
+
+      // Try to parse this utterance as an order via Gemini and queue it
+      // for the customer's approval. Fire-and-forget; ignore "no items".
+      fetch("/api/khataos/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: "quick_voice",
+          customerId: me.id,
+          customerName: me.name,
+          phone: me.phone,
+          transcript: text,
+          language: detected,
+          status: "pending_approval",
+        }),
+      }).then(async (r) => {
+        if (r.ok) {
+          setMessages((m) => [...m, { role: "agent", text: "Draft order ready — check My Orders to approve." }]);
+        }
+      }).catch(() => {});
     } catch (e) {
       const err = "Network error — please try again.";
       setMessages((m) => [...m, { role: "agent", text: err }]);
