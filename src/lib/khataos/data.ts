@@ -180,40 +180,6 @@ export function resetKhata() {
 }
 
 // ---- Mutations ----
-// Deduct available credit + log a credit txn in history without adding
-// to the local orders array (orders live in the DB now).
-export function recordCreditPurchase(
-  customerId: string,
-  amount: number,
-  items?: { name: string; qty: number; price: number }[],
-  note?: string,
-) {
-  if (!amount || amount <= 0) return;
-  setState((s) => ({
-    ...s,
-    customers: s.customers.map((c) =>
-      c.id === customerId
-        ? {
-            ...c,
-            outstanding: c.outstanding + amount,
-            lastActivity: today(),
-            txns: [
-              {
-                id: `c_${Date.now()}`,
-                date: today(),
-                kind: "credit",
-                amount,
-                note: note ?? (items?.map((i) => i.name).join(", ") || "Voice order"),
-                items,
-              },
-              ...c.txns,
-            ],
-          }
-        : c,
-    ),
-  }));
-}
-
 export function recordRepayment(customerId: string, amount: number) {
   setState((s) => ({
     ...s,

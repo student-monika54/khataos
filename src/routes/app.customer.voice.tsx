@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useKhata, formatINR, recordRepayment, recordCreditPurchase } from "@/lib/khataos/data";
+import { useKhata, formatINR, recordRepayment } from "@/lib/khataos/data";
 import { AppHeader, AppScreen, StatCard, Section } from "@/components/app/AppShell";
 import { useEffect, useRef, useState } from "react";
 import { Mic, Square, Volume2, Loader2, Sparkles } from "lucide-react";
@@ -105,25 +105,12 @@ function VoiceAgent() {
         });
         if (orderRes.ok) {
           const created = await orderRes.json();
-          const itemsArr = Array.isArray(created?.items) ? created.items : [];
-          const lines = itemsArr
-            .map((it: any) => `${it.quantity} ${it.unit ?? "pcs"} ${it.name}`)
-            .join(", ");
-          const amt = Number(created?.amount) || 0;
-          // Deduct from local available credit + add to credit history.
-          recordCreditPurchase(
-            me.id,
-            amt,
-            itemsArr.map((it: any) => ({
-              name: it.name,
-              qty: Number(it.quantity) || 1,
-              price: Number(it.estimatedPrice) || 0,
-            })),
-            lines || "Voice order",
-          );
+          const lines = Array.isArray(created?.items)
+            ? created.items.map((it: any) => `${it.quantity} ${it.unit ?? "pcs"} ${it.name}`).join(", ")
+            : "";
           setMessages((m) => [...m, {
             role: "agent",
-            text: `Order saved${lines ? `: ${lines}` : ""}${amt ? ` (₹${amt})` : ""}. Track it in My Orders.`,
+            text: `Order saved${lines ? `: ${lines}` : ""}. Track it in My Orders.`,
           }]);
         }
         // 422 = no items detected → silently ignore (was a non-order utterance).
