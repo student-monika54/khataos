@@ -34,11 +34,10 @@ function legacyMenuXml(base: string, cid: string): string {
 }
 
 function sarvamGreetingXml(base: string, cid: string): string {
-  // English → Kannada → Hindi only; Sarvam can still detect Tamil/Telugu when spoken.
+  // One short prompt, then start recording. Sarvam STT detects the
+  // language from the caller's first words — no need to stack greetings.
   return `
-    <Say voice="Polly.Raveena" language="en-IN">Welcome to KhataOS.</Say>
-    <Say voice="Google.kn-IN-Standard-A" language="kn-IN">KhataOS ge swagatha.</Say>
-    <Say voice="Polly.Aditi" language="hi-IN">KhataOS mein aapka swagat hai.</Say>
+    <Say voice="Polly.Raveena" language="en-IN">Welcome to KhataOS. Please tell me what you'd like to order after the beep.</Say>
     <Record action="${base}/api/public/twilio/record?cid=${encodeURIComponent(cid)}"
             method="POST"
             maxLength="20"
