@@ -341,7 +341,7 @@ function DecisionChain({ customer, metrics }: { customer?: Customer; metrics: an
 
 function WorkingCapital({
   inventory, topTrusted,
-}: { inventory: ReturnType<typeof useKhata<any>>; topTrusted: Customer[] }) {
+}: { inventory: any[]; topTrusted: Customer[] }) {
   const expiring = (inventory as any[]).slice(0, 2);
 
   return (
