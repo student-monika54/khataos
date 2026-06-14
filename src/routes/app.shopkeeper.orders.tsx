@@ -21,11 +21,12 @@ type LiveStage =
   | "listening" | "processing" | "checking_credit"
   | "approved" | "rejected" | "conditional" | "ready_for_fulfillment";
 type LiveItem = { name: string; quantity: string };
+type DbStatus = "pending_approval" | "approved" | "packed" | "ready" | "delivered" | "rejected";
 type LiveOrder = {
-  id: string; callId: string; customerId: string; customerName: string; phone?: string;
+  id: string; orderId?: string; callId: string; customerId: string; customerName: string; phone?: string;
   items: LiveItem[]; amount?: number; trustScore?: number;
   outstanding?: number; creditLimit?: number;
-  stage: LiveStage; decision?: "approve" | "reject" | "conditional";
+  stage: LiveStage; status?: DbStatus; decision?: "approve" | "reject" | "conditional";
   reasoning?: string; language?: string; createdAt: number; updatedAt: number;
 };
 
@@ -198,7 +199,49 @@ function LiveOrderCard({ o, flash }: { o: LiveOrder; flash: boolean }) {
           <span className="text-emerald font-semibold">Why: </span>{o.reasoning}
         </p>
       )}
+
+      <FulfillmentActions o={o} />
     </li>
+  );
+}
+
+const NEXT_DB: Record<DbStatus, { next: DbStatus | null; label: string }> = {
+  pending_approval: { next: null, label: "Waiting for customer" },
+  approved: { next: "packed", label: "Mark packed" },
+  packed: { next: "ready", label: "Mark ready" },
+  ready: { next: "delivered", label: "Mark delivered" },
+  delivered: { next: null, label: "Delivered ✓" },
+  rejected: { next: null, label: "Rejected" },
+};
+
+function FulfillmentActions({ o }: { o: LiveOrder }) {
+  const [busy, setBusy] = useState(false);
+  if (!o.orderId || !o.status) return null;
+  const meta = NEXT_DB[o.status];
+  if (!meta.next) {
+    if (o.status === "pending_approval") {
+      return <div className="mt-3 text-center text-[11px] text-amber-300">{meta.label}</div>;
+    }
+    return null;
+  }
+  async function advance() {
+    setBusy(true);
+    try {
+      await fetch("/api/khataos/orders/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: o.orderId, status: meta.next }),
+      });
+    } finally { setBusy(false); }
+  }
+  return (
+    <button
+      onClick={advance}
+      disabled={busy}
+      className="mt-3 w-full rounded-full bg-emerald py-2 text-[12.5px] font-semibold text-[#06140b] disabled:opacity-50"
+    >
+      {busy ? "Updating…" : meta.label}
+    </button>
   );
 }
 

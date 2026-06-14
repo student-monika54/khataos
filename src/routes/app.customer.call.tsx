@@ -115,6 +115,27 @@ function CallScreen() {
     const reply = data.decision === "approve" ? m.orderApproved
       : data.decision === "conditional" ? m.orderConditional(data.recommendedAmount ?? total)
       : m.orderRejected(data.reasoning ?? "");
+
+    // Persist to DB so Orders tab (and retailer) reflect it across devices.
+    const orderItems = cart.map((l) => ({
+      name: l.name, quantity: l.qty, unit: l.unit, estimatedPrice: l.price,
+    }));
+    fetch("/api/khataos/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source: "in_app_call",
+        customerId: me.id,
+        customerName: me.name,
+        phone: me.phone,
+        callId,
+        items: orderItems,
+        amount: total,
+        status: data.decision === "approve" ? "approved" : "pending_approval",
+        reasoning: data.reasoning,
+      }),
+    }).catch(() => {});
+
     setTimeout(() => { say(reply); setBusy(false); setCart([]); }, 900);
   }
 

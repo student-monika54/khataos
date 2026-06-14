@@ -242,11 +242,13 @@ export const Route = createFileRoute("/api/public/twilio/record")({
                 }));
             const amount = extracted?.totalEstimate ?? ctxOut.amount ?? 0;
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-            const { error: insErr } = await supabaseAdmin.from("voice_orders").insert({
+            const { error: insErr } = await supabaseAdmin.from("orders").insert({
+              source: "voice_call",
               call_id: cid,
               customer_id: call.customerId,
               customer_name: call.customerName,
               phone: call.phone,
+              retailer_id: "shop_default",
               items,
               amount,
               language: ctxOut.commerce.language,
@@ -254,7 +256,7 @@ export const Route = createFileRoute("/api/public/twilio/record")({
               status: "pending_approval",
               reasoning: extracted?.summary ?? ctxOut.financial.reasoning,
             });
-            if (insErr) console.error("[twilio.record] voice_orders insert", insErr);
+            if (insErr) console.error("[twilio.record] orders insert", insErr);
           } catch (e) {
             console.error("[twilio.record] extraction/insert failed", e);
           }
