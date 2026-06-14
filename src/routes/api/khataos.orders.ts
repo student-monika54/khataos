@@ -10,6 +10,28 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { extractOrderFromTranscript } from "@/lib/khataos/order-extractor.server";
 import { runFinancialBrain } from "@/lib/khataos/financial-brain.server";
+import { CATALOG, SKU_NAMES_BY_LANG, UNIT_LABELS, type LangKey } from "@/lib/khataos/catalog";
+
+function langKeyOf(language?: string): LangKey {
+  const l = (language ?? "").toLowerCase();
+  if (l.startsWith("hi")) return "hi";
+  if (l.startsWith("kn")) return "kn";
+  return "en";
+}
+function localizeItem(it: Item, lang: LangKey): Item {
+  const lower = (it.name ?? "").toLowerCase();
+  let skuId: string | undefined;
+  for (const [id, names] of Object.entries(SKU_NAMES_BY_LANG)) {
+    if (it.name && (it.name.includes(names.hi) || it.name.includes(names.kn) || lower === names.en.toLowerCase())) { skuId = id; break; }
+  }
+  if (!skuId) {
+    const sku = CATALOG.find((s) => s.aliases.some((a) => lower === a || lower.includes(a)));
+    skuId = sku?.id;
+  }
+  const name = skuId ? (SKU_NAMES_BY_LANG[skuId]?.[lang] ?? it.name) : it.name;
+  const unit = it.unit ? (UNIT_LABELS[lang][it.unit] ?? it.unit) : it.unit;
+  return { ...it, name, unit };
+}
 
 type Item = { name: string; quantity: number; unit?: string; estimatedPrice?: number };
 type CreateBody = {
