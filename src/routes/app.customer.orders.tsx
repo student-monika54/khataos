@@ -221,6 +221,8 @@ function CustomerOrders() {
         <EmptyState />
       ) : (
         <>
+          <PendingApprovalSection customerId={me.id} />
+
           <Section title="Active orders">
             {active.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border bg-elevated/40 p-5 text-center">
