@@ -100,10 +100,6 @@ function VoiceAgent() {
         speak(reply, detected);
         orderSaved = true;
       }
-        setMessages((m) => [...m, { role: "agent", text: reply, lang: detected }]);
-        speak(reply, detected);
-        orderSaved = true;
-      }
       // 422 = no items detected → fall through to chat assistant
     } catch {/* network – fall through */}
 
