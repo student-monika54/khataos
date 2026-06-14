@@ -59,75 +59,78 @@ function VoiceAgent() {
     const detected = detectLang(text);
     setMessages((m) => [...m, { role: "user", text, lang: detected }]);
     setThinking(true);
+
+    // Lightweight repayment intent (offline)
+    const repay = text.match(/(\d{2,5})/);
+    if (/pay|paid|repay|chuka|बकाया|भुगतान|ಪಾವತಿ/i.test(text) && repay) {
+      recordRepayment(me.id, Math.min(me.outstanding, parseInt(repay[1])));
+    }
+
+    // 1) PRIMARY PATH — try to extract an order from the utterance.
+    //    Gemini runs server-side; if items are detected the order is saved
+    //    immediately and shows up on /app/customer/orders (which polls).
+    let orderSaved = false;
     try {
-      const res = await fetch("/api/khataos", {
+      const orderRes = await fetch("/api/khataos/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode: "customer_voice",
-          message: text,
+          source: "quick_voice",
+          customerId: me.id,
+          customerName: me.name,
+          phone: me.phone,
+          transcript: text,
           language: detected,
-          context: {
-            customer_name: me.name,
-            available_credit_inr: available,
-            credit_limit_inr: me.creditLimit,
-            outstanding_inr: me.outstanding,
-            trust_score: me.trustScore,
-            due_date: me.dueDate,
-          },
         }),
       });
-      const data = await res.json();
-      const reply = (data.reply as string) || "Sorry, I didn't catch that.";
-      setMessages((m) => [...m, { role: "agent", text: reply, lang: detected }]);
-
-      // Lightweight repayment intent
-      const repay = text.match(/(\d{2,5})/);
-      if (/pay|paid|repay|chuka|बकाया|भुगतान|ಪಾವತಿ/i.test(text) && repay) {
-        recordRepayment(me.id, Math.min(me.outstanding, parseInt(repay[1])));
+      if (orderRes.ok) {
+        const created = await orderRes.json();
+        const items = Array.isArray(created?.items) ? created.items : [];
+        const lines = items
+          .map((it: any) => `${it.quantity} ${it.unit ?? "pcs"} ${it.name}`)
+          .join(", ");
+        const amt = created?.amount != null ? ` (~₹${Math.round(Number(created.amount))})` : "";
+        const reply = `Order placed: ${lines}${amt}. You'll see it under My Orders — awaiting shop approval.`;
+        setMessages((m) => [...m, { role: "agent", text: reply, lang: detected }]);
+        speak(reply, detected);
+        orderSaved = true;
       }
-      speak(reply, detected);
+      // 422 = no items detected → fall through to chat assistant
+    } catch {/* network – fall through */}
 
-      // Try to parse this utterance as an order via Gemini and persist it.
-      // Await so the user gets clear feedback whether items were detected.
+    // 2) FALLBACK — conversational reply for non-order intents
+    //    (balance, due date, credit, greetings).
+    if (!orderSaved) {
       try {
-        const orderRes = await fetch("/api/khataos/orders", {
+        const res = await fetch("/api/khataos", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            source: "quick_voice",
-            customerId: me.id,
-            customerName: me.name,
-            phone: me.phone,
-            transcript: text,
+            mode: "customer_voice",
+            message: text,
             language: detected,
+            context: {
+              customer_name: me.name,
+              available_credit_inr: available,
+              credit_limit_inr: me.creditLimit,
+              outstanding_inr: me.outstanding,
+              trust_score: me.trustScore,
+              due_date: me.dueDate,
+            },
           }),
         });
-        if (orderRes.ok) {
-          const created = await orderRes.json();
-          const lines = Array.isArray(created?.items)
-            ? created.items.map((it: any) => `${it.quantity} ${it.unit ?? "pcs"} ${it.name}`).join(", ")
-            : "";
-          setMessages((m) => [...m, {
-            role: "agent",
-            text: `Order saved${lines ? `: ${lines}` : ""}. Track it in My Orders.`,
-          }]);
-        }
-        else if (orderRes.status === 422) {
-          setMessages((m) => [...m, {
-            role: "agent",
-            text: "I couldn't detect items in that. Try: '2 kg rice and 1 litre oil'.",
-          }]);
-        }
-      } catch {/* network – ignore */}
-
-    } catch (e) {
-      const err = "Network error — please try again.";
-      setMessages((m) => [...m, { role: "agent", text: err }]);
-      speak(err, "en-IN");
-    } finally {
-      setThinking(false);
+        const data = await res.json();
+        const reply = (data.reply as string) || "Sorry, I didn't catch that. Try saying your order, e.g. '2 kg rice and 1 litre oil'.";
+        setMessages((m) => [...m, { role: "agent", text: reply, lang: detected }]);
+        speak(reply, detected);
+      } catch {
+        const err = "Network error — please try again.";
+        setMessages((m) => [...m, { role: "agent", text: err }]);
+        speak(err, "en-IN");
+      }
     }
+
+    setThinking(false);
   }
 
   function speak(text: string, voiceLang: string) {
