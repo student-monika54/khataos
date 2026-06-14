@@ -22,9 +22,22 @@ import {
   isSarvamEnabled, sarvamTranslateSpeech, sarvamTranslateSpeechStreaming, sarvamTextToSpeech,
   type SarvamLangCode,
 } from "@/lib/khataos/sarvam.server";
-import { putTts } from "@/lib/khataos/tts-cache.server";
 import { processTurn } from "@/lib/khataos/orchestrator.server";
 import { patchLiveOrder, publishLiveOrder } from "@/lib/khataos/live-orders.server";
+
+async function uploadTtsAndSign(cid: string, audio: Uint8Array): Promise<string> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const path = `${cid}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.wav`;
+  const { error: upErr } = await supabaseAdmin.storage
+    .from("twilio-tts")
+    .upload(path, audio, { contentType: "audio/wav", upsert: false });
+  if (upErr) throw new Error(`TTS upload failed: ${upErr.message}`);
+  const { data, error: signErr } = await supabaseAdmin.storage
+    .from("twilio-tts")
+    .createSignedUrl(path, 600);
+  if (signErr || !data?.signedUrl) throw new Error(`TTS sign failed: ${signErr?.message ?? "no url"}`);
+  return data.signedUrl;
+}
 
 function twiml(xml: string) {
   return new Response(`<?xml version="1.0" encoding="UTF-8"?><Response>${xml}</Response>`, {
