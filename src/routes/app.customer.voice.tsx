@@ -87,10 +87,19 @@ function VoiceAgent() {
         const created = await orderRes.json();
         const items = Array.isArray(created?.items) ? created.items : [];
         const lines = items
-          .map((it: any) => `${it.quantity} ${it.unit ?? "pcs"} ${it.name}`)
+          .map((it: any) => `${it.quantity} ${it.unit ?? ""} ${it.name}`.trim())
           .join(", ");
-        const amt = created?.amount != null ? ` (~₹${Math.round(Number(created.amount))})` : "";
-        const reply = `Order placed: ${lines}${amt}. You'll see it under My Orders — awaiting shop approval.`;
+        const amt = created?.amount != null ? Math.round(Number(created.amount)) : null;
+        const reply =
+          detected === "hi-IN"
+            ? `ऑर्डर लग गया: ${lines}${amt != null ? ` (लगभग ₹${amt})` : ""}। आप इसे "मेरे ऑर्डर" में देख सकते हैं — दुकानदार की मंज़ूरी का इंतज़ार है।`
+            : detected === "kn-IN"
+            ? `ಆರ್ಡರ್ ದಾಖಲಾಯಿತು: ${lines}${amt != null ? ` (ಸುಮಾರು ₹${amt})` : ""}. ಇದನ್ನು "ನನ್ನ ಆರ್ಡರ್‌ಗಳು"ನಲ್ಲಿ ನೋಡಬಹುದು — ಅಂಗಡಿಯವರ ಅನುಮೋದನೆಗಾಗಿ ಕಾಯುತ್ತಿದೆ.`
+            : `Order placed: ${lines}${amt != null ? ` (~₹${amt})` : ""}. You'll see it under My Orders — awaiting shop approval.`;
+        setMessages((m) => [...m, { role: "agent", text: reply, lang: detected }]);
+        speak(reply, detected);
+        orderSaved = true;
+      }
         setMessages((m) => [...m, { role: "agent", text: reply, lang: detected }]);
         speak(reply, detected);
         orderSaved = true;
