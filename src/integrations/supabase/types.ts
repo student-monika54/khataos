@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      orders: {
+        Row: {
+          amount: number | null
+          call_id: string | null
+          created_at: string
+          customer_id: string
+          customer_name: string
+          id: string
+          items: Json
+          language: string | null
+          phone: string | null
+          reasoning: string | null
+          retailer_id: string | null
+          source: string
+          status: string
+          transcript: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          call_id?: string | null
+          created_at?: string
+          customer_id: string
+          customer_name: string
+          id?: string
+          items?: Json
+          language?: string | null
+          phone?: string | null
+          reasoning?: string | null
+          retailer_id?: string | null
+          source?: string
+          status?: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          call_id?: string | null
+          created_at?: string
+          customer_id?: string
+          customer_name?: string
+          id?: string
+          items?: Json
+          language?: string | null
+          phone?: string | null
+          reasoning?: string | null
+          retailer_id?: string | null
+          source?: string
+          status?: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       voice_orders: {
         Row: {
           amount: number | null
