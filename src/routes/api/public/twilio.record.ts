@@ -308,7 +308,7 @@ export const Route = createFileRoute("/api/public/twilio/record")({
             ? "I didn't catch any items. Anything else to add, or say 'done' to confirm."
             : "I didn't catch any items. Please tell me what you'd like to order.";
           const play = await speakTwiml(cid, prompt, detectedLang);
-          appendTurnServer(cid, { role: "agent", at: Date.now(), text: prompt, templateId: "REPROMPT", language: langToLabel(detectedLang), pipelineStage: "gemini-extractor" });
+          appendTurnServer(cid, { role: "agent", at: Date.now(), text: prompt, templateId: "REPROMPT", language: langToLabel(detectedLang), pipelineStage: "commerce" });
           return twiml(`${play}${recordTwiml(base, cid)}`);
         }
 
@@ -332,7 +332,7 @@ export const Route = createFileRoute("/api/public/twilio/record")({
         appendTurnServer(cid, {
           role: "agent", at: Date.now(), text: reply,
           templateId: "ITEMS_ADDED", language: langToLabel(detectedLang),
-          pipelineStage: "gemini-extractor",
+          pipelineStage: "commerce",
         });
 
         console.log("[Sarvam pipeline]", JSON.stringify({
