@@ -21,11 +21,12 @@ type LiveStage =
   | "listening" | "processing" | "checking_credit"
   | "approved" | "rejected" | "conditional" | "ready_for_fulfillment";
 type LiveItem = { name: string; quantity: string };
+type DbStatus = "pending_approval" | "approved" | "packed" | "ready" | "delivered" | "rejected";
 type LiveOrder = {
-  id: string; callId: string; customerId: string; customerName: string; phone?: string;
+  id: string; orderId?: string; callId: string; customerId: string; customerName: string; phone?: string;
   items: LiveItem[]; amount?: number; trustScore?: number;
   outstanding?: number; creditLimit?: number;
-  stage: LiveStage; decision?: "approve" | "reject" | "conditional";
+  stage: LiveStage; status?: DbStatus; decision?: "approve" | "reject" | "conditional";
   reasoning?: string; language?: string; createdAt: number; updatedAt: number;
 };
 
